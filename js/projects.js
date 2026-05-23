@@ -84,8 +84,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const card = document.createElement("div");
             card.className = "glass-panel project-card";
 
-            //  const socialBanner = repo.Banner || `https://socialify.git.ci/Pro-bandey/${repo.Repo}/image?theme=Dark`;
-            const socialBanner = repo.Banner || `/icons/512.png`;
+            const socialBanner = repo.Banner || `https://socialify.git.ci/Pro-bandey/${repo.Repo}/image?theme=Dark`;
+            // const socialBanner = repo.Banner || `/icons/512.png`;
 
             let trackSegmentHTML = "";
             const sortedLangs = Object.entries(repo.Langs || {}).sort((a, b) => b[1] - a[1]);
