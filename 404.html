@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#ff9900">
+    <meta name="description" content="System Error 404: Direct route not found. Launching dynamic fallback protocols.">
+
+    <title>Route Fault [404] | Pro Bandey</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <style>
+        .error-layout {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: calc(var(--nav-height) + 2rem) 1.5rem 2rem;
+            position: relative;
+        }
+
+        .error-glitch-title {
+            font-size: clamp(3rem, 10vw, 6rem);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.05em;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .arcade-container {
+            width: 100%;
+            max-width: 420px;
+            margin-top: 2rem;
+            border-color: rgba(255, 153, 0, 0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .arcade-screen {
+            position: relative;
+            background: #000;
+            width: 100%;
+            padding-bottom: 100%;
+            /* Strict 1:1 Aspect Box */
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        #game-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .arcade-panel {
+            padding: 1.25rem;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        /* Virtual D-Pad controls hidden on Desktop screen */
+        .mobile-dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            max-width: 160px;
+            margin: 1rem auto 0;
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-dpad {
+                display: none !important;
+            }
+        }
+
+        .dpad-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            border-radius: 6px;
+            padding: 0.75rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+        }
+
+        .dpad-btn:active {
+            background: var(--primary-glow-weak);
+            border-color: var(--primary);
+        }
+    </style>
+    <style>
+        /* ... Keep existing arcade styles ... */
+        .dpad-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            border-radius: 6px;
+            padding: 0.75rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            touch-action: manipulation;
+            /* Eradicates default 300ms touch tap delays on mobile screens */
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Backdrop Environment -->
+    <div class="tech-grid"></div>
+    <div class="ambient-orb first-orb"></div>
+    <div class="ambient-orb second-orb"></div>
+
+    <!-- Error Navigation Header -->
+    <header class="header" style="position: absolute;">
+        <div class="nav-bar glass-panel">
+            <a href="/" class="nav-logo font-mono">
+                <span class="text-primary">PRO</span>_BANDEY
+            </a>
+            <div class="system-status"
+                style="background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                <div class="status-dot"
+                    style="background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); animation: none;"></div>
+                ROUTE_FAULT_404
+            </div>
+        </div>
+    </header>
+
+    <!-- Error Layout & Arcade Canvas -->
+    <main class="error-layout">
+        <h1 class="error-glitch-title text-primary font-mono">404_</h1>
+        <p class="font-mono uppercase text-muted" style="letter-spacing: 0.2em; font-size: 0.8rem;">ROUTE_NOT_DECOUPLED
+        </p>
+
+        <div class="glass-panel arcade-container reveal active">
+            <!-- Game Canvas Frame -->
+            <div class="arcade-screen">
+                <canvas id="game-canvas"></canvas>
+            </div>
+
+            <!-- Arcade Console & Info panel -->
+            <div class="arcade-panel flex justify-between items-center">
+                <div class="font-mono">
+                    <span class="text-muted" style="font-size: 0.7rem; display: block;">SCORE_</span>
+                    <span id="score-val" class="text-secondary font-bold" style="font-size: 1.2rem;">000</span>
+                </div>
+                <button id="game-action-btn" class="btn btn-prim font-mono"
+                    style="padding: 0.5rem 1rem; font-size: 0.75rem;">START_GAME</button>
+            </div>
+
+            <!-- Mobile Directional Navigation -->
+            <div class="arcade-panel" style="border-top: 1px solid var(--glass-border);">
+                <span class="font-mono text-muted text-center"
+                    style="font-size: 0.65rem; display: block; letter-spacing: 0.05em;">TOUCH_INPUTS_ACTIVE</span>
+                <div class="mobile-dpad">
+                    <div></div>
+                    <button class="dpad-btn" id="ctrl-up">UP</button>
+                    <div></div>
+                    <button class="dpad-btn" id="ctrl-left">LEFT</button>
+                    <div></div>
+                    <button class="dpad-btn" id="ctrl-right">RIGHT</button>
+                    <div></div>
+                    <button class="dpad-btn" id="ctrl-down">DOWN</button>
+                    <div></div>
+                </div>
+            </div>
+        </div>
+
+        <a href="/" class="btn btn-out font-mono" style="margin-top: 2rem; font-size: 0.8rem;">
+            RETURN_TO_WORKSPACE
+        </a>
+    </main>
+
+    <!-- Arcade Processing Engine Script -->
+    <script>
+        const canvas = document.getElementById("game-canvas");
+        const ctx = canvas.getContext("2d");
+        const scoreVal = document.getElementById("score-val");
+        const actionBtn = document.getElementById("game-action-btn");
+
+        // System Constants 
+        const GRID_SIZE = 20;
+        let TILE_COUNT;
+
+        let snake = [];
+        let food = { x: 0, y: 0 };
+        let dx = GRID_SIZE;
+        let dy = 0;
+        let score = 0;
+        let gameInterval = null;
+        let gameRunning = false;
+        let directionLocked = false;
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.width; // Enforces perfect square
+            TILE_COUNT = canvas.width / GRID_SIZE;
+            drawPlaceholder();
+        }
+
+        window.addEventListener("resize", resizeCanvas);
+
+        function drawPlaceholder() {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ff9900";
+            ctx.font = "14px 'Space Mono', monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("NEON_SNAKE_WORKSPACE_v1.0", canvas.width / 2, canvas.height / 2 - 10);
+            ctx.fillStyle = "#94a3b8";
+            ctx.fillText("CLICK START_GAME TO BOOT", canvas.width / 2, canvas.height / 2 + 15);
+        }
+
+        function initGame() {
+            snake = [
+                { x: GRID_SIZE * 5, y: GRID_SIZE * 5 },
+                { x: GRID_SIZE * 4, y: GRID_SIZE * 5 },
+                { x: GRID_SIZE * 3, y: GRID_SIZE * 5 }
+            ];
+            dx = GRID_SIZE;
+            dy = 0;
+            score = 0;
+            scoreVal.textContent = "000";
+            spawnFood();
+        }
+
+        function spawnFood() {
+            food.x = Math.floor(Math.random() * (canvas.width / GRID_SIZE)) * GRID_SIZE;
+            food.y = Math.floor(Math.random() * (canvas.height / GRID_SIZE)) * GRID_SIZE;
+
+            // Validate food position does not overlap snake segments
+            snake.forEach(part => {
+                if (part.x === food.x && part.y === food.y) spawnFood();
+            });
+        }
+
+        function mainLoop() {
+            if (checkGameOver()) {
+                endGame();
+                return;
+            }
+
+            directionLocked = false;
+            clearCanvas();
+            drawFood();
+            moveSnake();
+            drawSnake();
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawSnake() {
+            snake.forEach((part, index) => {
+                // Head uses solid primary orange, body blends gradient glows
+                ctx.fillStyle = index === 0 ? "#ff9900" : "rgba(255, 153, 0, 0.7)";
+                ctx.shadowColor = "#ff9900";
+                ctx.shadowBlur = index === 0 ? 10 : 4;
+                ctx.fillRect(part.x, part.y, GRID_SIZE - 2, GRID_SIZE - 2);
+            });
+            ctx.shadowBlur = 0; // Reset canvas glow states
+        }
+
+        function drawFood() {
+            ctx.fillStyle = "#00dd00";
+            ctx.shadowColor = "#00dd00";
+            ctx.shadowBlur = 10;
+            ctx.fillRect(food.x, food.y, GRID_SIZE - 2, GRID_SIZE - 2);
+            ctx.shadowBlur = 0;
+        }
+
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreVal.textContent = String(score).padStart(3, '0');
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function checkGameOver() {
+            const head = snake[0];
+
+            // Wall collisions check
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) return true;
+
+            // Self intersection collision check
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) return true;
+            }
+            return false;
+        }
+
+        function changeDirection(direction) {
+            if (directionLocked) return;
+
+            const goingUp = dy === -GRID_SIZE;
+            const goingDown = dy === GRID_SIZE;
+            const goingRight = dx === GRID_SIZE;
+            const goingLeft = dx === -GRID_SIZE;
+
+            if (direction === "LEFT" && !goingRight) { dx = -GRID_SIZE; dy = 0; directionLocked = true; }
+            if (direction === "RIGHT" && !goingLeft) { dx = GRID_SIZE; dy = 0; directionLocked = true; }
+            if (direction === "UP" && !goingDown) { dx = 0; dy = -GRID_SIZE; directionLocked = true; }
+            if (direction === "DOWN" && !goingUp) { dx = 0; dy = GRID_SIZE; directionLocked = true; }
+        }
+
+        // Keyboard tracking bindings
+        document.addEventListener("keydown", e => {
+            if (e.key === "ArrowLeft") changeDirection("LEFT");
+            if (e.key === "ArrowRight") changeDirection("RIGHT");
+            if (e.key === "ArrowUp") changeDirection("UP");
+            if (e.key === "ArrowDown") changeDirection("DOWN");
+
+            // Prevent workspace scrolling when playing the game
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.key) > -1) {
+                e.preventDefault();
+            }
+        });
+
+        // Touch Pad controller buttons event listeners
+        document.getElementById("ctrl-up").addEventListener("click", () => changeDirection("UP"));
+        document.getElementById("ctrl-down").addEventListener("click", () => changeDirection("DOWN"));
+        document.getElementById("ctrl-left").addEventListener("click", () => changeDirection("LEFT"));
+        document.getElementById("ctrl-right").addEventListener("click", () => changeDirection("RIGHT"));
+
+        // function startGame() {
+        //     initGame();
+        //     actionBtn.textContent = "RESET_GAME";
+        //     gameRunning = true;
+        //     if (gameInterval) clearInterval(gameInterval);
+        //     gameInterval = setInterval(mainLoop, 100); // 100ms game rate speed config
+        // }
+
+        // function endGame() {
+        //     clearInterval(gameInterval);
+        //     gameRunning = false;
+        //     actionBtn.textContent = "REBOOT_SYSTEM";
+
+        //     ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+        //     ctx.fillStyle = "#ef4444";
+        //     ctx.font = "18px 'Space Mono', monospace";
+        //     ctx.textAlign = "center";
+        //     ctx.fillText("SYSTEM_SHUTDOWN", canvas.width / 2, canvas.height / 2 - 5);
+        //     ctx.fillStyle = "#f8fafc";
+        //     ctx.font = "12px 'Space Mono', monospace";
+        //     ctx.fillText(`SCORE OVERRIDE: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+        // }
+
+        function startGame() {
+            initGame();
+            actionBtn.textContent = "RESET_GAME";
+            gameRunning = true;
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(mainLoop, 100);
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            gameRunning = false;
+            actionBtn.textContent = "REBOOT_SYSTEM";
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ef4444";
+            ctx.font = "18px 'Space Mono', monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("SYSTEM_SHUTDOWN", canvas.width / 2, canvas.height / 2 - 5);
+            ctx.fillStyle = "#f8fafc";
+            ctx.font = "12px 'Space Mono', monospace";
+            ctx.fillText(`SCORE OVERRIDE: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+        }
+
+        // Tab Hibernation Feature: Pauses loops automatically when visitors switch tabs to minimize battery drain
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden && gameRunning) {
+                clearInterval(gameInterval);
+            } else if (!document.hidden && gameRunning) {
+                gameInterval = setInterval(mainLoop, 100);
+            }
+        });
+
+        actionBtn.addEventListener("click", () => {
+            startGame();
+        });
+
+        resizeCanvas();
+    </script>
+</body>
+
+</html>
