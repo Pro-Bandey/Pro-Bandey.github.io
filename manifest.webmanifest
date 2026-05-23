@@ -1,6 +1,6 @@
 {
-  "name": "MainRoute Core",
-  "short_name": "MRC",
+  "name": "Pro Bandey",
+  "short_name": "PB",
   "description": "Pro Bandey - High-Performance PWA, Custom Software Architecture, and Open-Source Contributions.",
   "start_url": "./",
   "display": "standalone",
