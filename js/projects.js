@@ -1,6 +1,8 @@
+/**
+ * Dynamic Repositories Processing & Preview Engine
+ */
 document.addEventListener("DOMContentLoaded", () => {
     const DATABASE_ENDPOINT = "https://raw.githubusercontent.com/Pro-bandey/Pro-bandey/db/db.json";
-    // const DATABASE_ENDPOINT = "/assets/db.json";
     const CACHE_KEY = "workspace_repos_cache";
 
     const projectsGrid = document.getElementById("projects-grid");
@@ -20,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Go: "#00add8",
         Rust: "#dea584",
         Java: "#b07219",
-        yml: "#e32626"
+        Yml: "e32626"
     };
 
     function resolveLanguageColor(lang) {
@@ -33,11 +35,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const daysDifference = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
         return daysDifference <= 6;
     }
+
+    // Performance Caching Layer
     const cachedData = sessionStorage.getItem(CACHE_KEY);
     if (cachedData) {
         try {
             const database = JSON.parse(cachedData);
             renderProjects(database);
+            checkUrlParams(database);
         } catch (e) {
             fetchDatabase();
         }
@@ -54,6 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(database => {
                 sessionStorage.setItem(CACHE_KEY, JSON.stringify(database));
                 renderProjects(database);
+                checkUrlParams(database);
             })
             .catch(err => {
                 console.error(err);
@@ -85,7 +91,6 @@ document.addEventListener("DOMContentLoaded", () => {
             card.className = "glass-panel project-card";
 
             const socialBanner = repo.Banner || `https://socialify.git.ci/Pro-bandey/${repo.Repo}/image?theme=Dark`;
-            // const socialBanner = repo.Banner || `/icons/512.png`;
 
             let trackSegmentHTML = "";
             const sortedLangs = Object.entries(repo.Langs || {}).sort((a, b) => b[1] - a[1]);
@@ -127,6 +132,22 @@ document.addEventListener("DOMContentLoaded", () => {
         bindLanguageHoverEvents();
     }
 
+    // Checks URL parameter ?pro=RepoName on load
+    function checkUrlParams(database) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const repoQuery = urlParams.get("pro");
+        
+        if (repoQuery) {
+            // Find if repo exists in DB to check its ReadMe status
+            const targetRepo = database.find(r => r.Repo.toLowerCase() === repoQuery.toLowerCase());
+            if (targetRepo) {
+                openReadmeDrawer(targetRepo.Repo, targetRepo.ReadMeIs);
+            } else {
+                openReadmeDrawer(repoQuery, true); // Fallback attempt
+            }
+        }
+    }
+
     function bindLanguageHoverEvents() {
         const tracks = document.querySelectorAll(".language-track-bar");
 
@@ -164,7 +185,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             track.addEventListener("mousemove", (e) => {
-
                 const xOffset = 20;
                 const yOffset = -50;
                 langTooltip.style.left = `${e.clientX + xOffset}px`;
@@ -178,12 +198,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+// 4. README Viewer Engine Modal Controls
 function openReadmeDrawer(repoName, hasReadme) {
     const drawer = document.getElementById("readme-drawer");
     const body = document.getElementById("readme-body");
     const title = document.getElementById("readme-title");
 
     if (!drawer || !body || !title) return;
+
+    // Sync state to URL seamlessly
+    const url = new URL(window.location);
+    url.searchParams.set("pro", repoName);
+    window.history.replaceState({}, "", url);
 
     title.textContent = `${repoName}_readme_`;
     body.innerHTML = `<p class="font-mono text-muted text-center">Reading workspace configuration files...</p>`;
@@ -202,10 +228,9 @@ function openReadmeDrawer(repoName, hasReadme) {
     const TARGET_RAW_URL = `https://raw.githubusercontent.com/Pro-bandey/${repoName}/refs/heads/main/README.md`;
     const FALLBACK_RAW_URL = `https://raw.githubusercontent.com/Pro-bandey/${repoName}/refs/heads/master/README.md`;
 
-    // Progressive resolution chain testing raw CDN endpoints
     fetch(TARGET_RAW_URL)
         .then(res => {
-            if (!res.ok) return fetch(FALLBACK_RAW_URL); // fallback to master branch
+            if (!res.ok) return fetch(FALLBACK_RAW_URL);
             return res;
         })
         .then(res => {
@@ -213,7 +238,6 @@ function openReadmeDrawer(repoName, hasReadme) {
             return res.text();
         })
         .then(markdown => {
-            // Evaluates your local marked.js engine library parsed wrapper
             body.innerHTML = marked.parse(markdown);
         })
         .catch(() => {
@@ -226,10 +250,10 @@ function openReadmeDrawer(repoName, hasReadme) {
         });
 }
 
+// 5. Dynamic Live Preview Embedded Framework (CLEANED)
 function openIframePreview(repoName, targetUrl) {
     const drawer = document.getElementById("preview-drawer");
     const frame = document.getElementById("preview-frame");
-    const fallbackBtn = document.getElementById("iframe-fallback-btn");
     const extLink = document.getElementById("external-preview-link");
     const title = document.getElementById("preview-title");
 
@@ -238,26 +262,13 @@ function openIframePreview(repoName, targetUrl) {
     title.textContent = `${repoName}_live_render_`;
     extLink.href = targetUrl;
 
+    // Just show iframe without block checks
     frame.classList.remove("hidden");
     frame.src = targetUrl;
-
     drawer.classList.add("active");
-
-    let securityTimer = setTimeout(() => {
-        try {
-            if (frame.contentWindow.length === 0 && !frame.src.includes(window.location.host)) {
-                triggerIframeFallback();
-            }
-        } catch (e) {
-            triggerIframeFallback();
-        }
-    }, 5000);
-
-    frame.onload = () => {
-        clearTimeout(securityTimer);
-    };
 }
 
+// Global Modal Drawer Closing Event Receivers
 document.addEventListener("DOMContentLoaded", () => {
     const closeReadme = document.getElementById("close-readme");
     const closePreview = document.getElementById("close-preview");
@@ -270,6 +281,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (previewDrawer) {
             previewDrawer.classList.remove("active");
             if (previewFrame) previewFrame.src = ""; // Unloads target frames completely
+        }
+        
+        // Remove the ?pro= parameter from URL on close without refreshing the page
+        const url = new URL(window.location);
+        if (url.searchParams.has("pro")) {
+            url.searchParams.delete("pro");
+            window.history.replaceState({}, "", url);
         }
     }
 
