@@ -1,6 +1,3 @@
-/**
- * Dynamic Repositories Processing & Preview Engine
- */
 document.addEventListener("DOMContentLoaded", () => {
     const DATABASE_ENDPOINT = "https://raw.githubusercontent.com/Pro-bandey/Pro-bandey/db/db.json";
     const CACHE_KEY = "workspace_repos_cache";
@@ -36,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return daysDifference <= 6;
     }
 
-    // Performance Caching Layer
     const cachedData = sessionStorage.getItem(CACHE_KEY);
     if (cachedData) {
         try {
@@ -132,18 +128,16 @@ document.addEventListener("DOMContentLoaded", () => {
         bindLanguageHoverEvents();
     }
 
-    // Checks URL parameter ?pro=RepoName on load
     function checkUrlParams(database) {
         const urlParams = new URLSearchParams(window.location.search);
         const repoQuery = urlParams.get("pro");
-        
+
         if (repoQuery) {
-            // Find if repo exists in DB to check its ReadMe status
             const targetRepo = database.find(r => r.Repo.toLowerCase() === repoQuery.toLowerCase());
             if (targetRepo) {
                 openReadmeDrawer(targetRepo.Repo, targetRepo.ReadMeIs);
             } else {
-                openReadmeDrawer(repoQuery, true); // Fallback attempt
+                openReadmeDrawer(repoQuery, true);
             }
         }
     }
@@ -282,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
             previewDrawer.classList.remove("active");
             if (previewFrame) previewFrame.src = ""; // Unloads target frames completely
         }
-        
+
         // Remove the ?pro= parameter from URL on close without refreshing the page
         const url = new URL(window.location);
         if (url.searchParams.has("pro")) {
