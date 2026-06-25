@@ -2,12 +2,13 @@
   "name": "Pro Bandey",
   "short_name": "PB",
   "description": "Pro Bandey - High-Performance PWA, Custom Software Architecture, and Open-Source Contributions.",
-  "start_url": "./",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#070709",
   "theme_color": "#ff9900",
   "orientation": "portrait-primary",
-  "scope": "/",
   "lang": "en",
 
   "categories": ["technology", "Software", "development"],
@@ -16,52 +17,52 @@
 
   "icons": [
     {
-      "src": "./favicon.ico",
-      "sizes": "16x16 32x32 48x48 64x64",
+      "src": "/favicon.ico",
+      "sizes": "any",
       "type": "image/x-icon"
     },
     {
-      "src": "./src/16.png",
+      "src": "/src/16.png",
       "sizes": "16x16",
       "type": "image/png"
     },
     {
-      "src": "./src/32.png",
+      "src": "/src/32.png",
       "sizes": "32x32",
       "type": "image/png"
     },
     {
-      "src": "./src/144.png",
+      "src": "/src/144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./src/maskable-144.png",
+      "src": "/src/maskable-144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./src/192.png",
+      "src": "/src/192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./src/maskable-192.png",
+      "src": "/src/maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./src/512.png",
+      "src": "/src/512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./src/maskable-512.png",
+      "src": "/src/maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -76,7 +77,7 @@
       "url": "/Projects/",
       "icons": [
         {
-          "src": "./src/192.png",
+          "src": "/src/192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -89,7 +90,7 @@
       "url": "/LICENSE.txt",
       "icons": [
         {
-          "src": "./src/192.png",
+          "src": "/src/192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -99,7 +100,14 @@
 
   "screenshots": [
     {
-      "src": "./assets/social.png",
+      "src": "/assets/social.png",
+      "form_factor": "wide",
+      "sizes": "2560x1440",
+      "type": "image/png",
+      "description": "ScreenShot Of Site"
+    },
+    {
+      "src": "/assets/social.png",
       "sizes": "2560x1440",
       "type": "image/png",
       "description": "ScreenShot Of Site"
