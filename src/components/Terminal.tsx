@@ -58,7 +58,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
         let currentTyped = '';
         const cmdText = step.cmd;
         setLines(prev => [...prev, { text: '', type: 'input' }]);
-        
+
         for (let i = 0; i < cmdText.length; i++) {
           await delay(45);
           if (!active) return;
@@ -151,7 +151,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
     } else if (cmd === 'contact') {
       responseLines = [
         { text: '📨 SYSTEM COMMUNICATION CHANNELS:', type: 'success' },
-        { text: '  • Mail: rm4814691@gmail.com', type: 'output' },
+        { text: '  • Mail: pb@mrc.com', type: 'output' },
         { text: '  • GitHub: https://github.com/Pro-bandey', type: 'output' },
         { text: 'Feel free to open a transmission for engineering consultations.', type: 'output' }
       ];
@@ -184,7 +184,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
   };
 
   return (
-    <div 
+    <div
       className="glass-panel overflow-hidden border border-white/10 flex flex-col h-[350px] cursor-text bg-white/5 backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
       onClick={handleTerminalClick}
     >

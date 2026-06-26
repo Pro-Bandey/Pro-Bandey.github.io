@@ -244,7 +244,7 @@ export default function App() {
     const logSteps = [
       'Establishing TLS handshake secure protocols...',
       'Bundling payload schema variables...',
-      'Piping transmission to mail relay rm4814691@gmail.com...',
+      'Piping transmission to mail relay pd@mrc.com...',
       'Verifying payload integrity checks: OK',
       'Data synchronized successfully. Transmission terminated.'
     ];
@@ -846,14 +846,6 @@ export default function App() {
             >
               <Github className="w-3.5 h-3.5" />
               <span>@pro-bandey</span>
-            </a>
-            <a 
-              href="mailto:rm4814691@gmail.com" 
-              className="flex items-center gap-1.5 hover:text-primary transition-colors"
-              title="Direct mail transmission"
-            >
-              <Mail className="w-3.5 h-3.5" />
-              <span>tellus@node</span>
             </a>
           </div>
         </div>
