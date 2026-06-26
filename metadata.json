@@ -1,0 +1,6 @@
+{
+  "name": "Pro Bandey Portfolio",
+  "description": "Interactive Systems Engineering Portfolio & Repository Registry featuring dynamic GitHub stats, interactive terminal emulation, and project live previews.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
