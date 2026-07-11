@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Cpu, 
-  CodeXml, 
+  CodeXml, Star, 
   Database, 
   Sparkles, 
   Mail, 
@@ -14,7 +14,9 @@ import {
   TerminalSquare, 
   Compass, 
   Loader2, 
-  AlertCircle
+  AlertCircle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Repository, LANGUAGE_COLORS } from './types';
@@ -24,11 +26,23 @@ import ProjectCard from './components/ProjectCard';
 import LanguageTooltip from './components/LanguageTooltip';
 import ReadmeDrawer from './components/ReadmeDrawer';
 import PreviewDrawer from './components/PreviewDrawer';
+import { ActivityChart } from './components/ActivityChart';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'workspace' | 'registry' | 'details' | 'preview'>('workspace');
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'contact'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'overview' || tab === 'projects' || tab === 'contact') return tab;
+    return 'overview';
+  });
   const [loadingApp, setLoadingApp] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [theme, setTheme] = useState<'slate-midnight' | 'light-cyber'>('slate-midnight');
+
+  // Theme Sync
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   // Repositories State
   const [repos, setRepos] = useState<Repository[]>([]);
@@ -75,8 +89,8 @@ export default function App() {
     const fltrParam = params.get('fltr');
     const qParam = params.get('q');
     const srtParam = params.get('srt');
-    const idParam = params.get('id');
-    const prwParam = params.get('prw');
+    const rdmParam = params.get('rdm') || params.get('id');
+    const prvParam = params.get('prv') || params.get('prw');
 
     if (fltrParam) {
       setSelectedLanguage(fltrParam);
@@ -87,12 +101,10 @@ export default function App() {
     if (srtParam) {
       setSortBy(srtParam as 'updated' | 'stars' | 'name');
     }
-    if (idParam) {
-      setActiveReadmeRepo(idParam);
-      setActiveTab('details');
-    } else if (prwParam) {
-      setActivePreview({ repo: prwParam, url: '' });
-      setActiveTab('preview');
+    if (rdmParam) {
+      setActiveReadmeRepo(rdmParam);
+    } else if (prvParam) {
+      setActivePreview({ repo: prvParam, url: '' });
     }
   }, []);
 
@@ -101,6 +113,10 @@ export default function App() {
     if (loadingApp) return;
 
     const params = new URLSearchParams();
+
+    if (activeTab && activeTab !== 'overview') {
+      params.set('tab', activeTab);
+    }
     if (selectedLanguage && selectedLanguage !== 'All') {
       params.set('fltr', selectedLanguage);
     }
@@ -110,17 +126,17 @@ export default function App() {
     if (sortBy && sortBy !== 'updated') {
       params.set('srt', sortBy);
     }
-    if (activeReadmeRepo && activeTab === 'details') {
-      params.set('id', activeReadmeRepo);
+    if (activeReadmeRepo) {
+      params.set('rdm', activeReadmeRepo);
     }
-    if (activePreview && activeTab === 'preview') {
-      params.set('prw', activePreview.repo);
+    if (activePreview) {
+      params.set('prv', activePreview.repo);
     }
 
     const queryString = params.toString();
     const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
     window.history.replaceState(null, '', newUrl);
-  }, [selectedLanguage, searchQuery, sortBy, activeReadmeRepo, activePreview, activeTab, loadingApp]);
+  }, [activeTab, selectedLanguage, searchQuery, sortBy, activeReadmeRepo, activePreview, loadingApp]);
 
   // Resolve preview URL when repositories load
   useEffect(() => {
@@ -130,7 +146,6 @@ export default function App() {
         setActivePreview({ repo: match.Repo, url: match.PreviewUrl });
       } else if (match) {
         setActiveReadmeRepo(match.Repo);
-        setActiveTab('details');
         setActivePreview(null);
       }
     }
@@ -160,11 +175,15 @@ export default function App() {
         
         // Filter out non-public ones or order them
         const filtered = data.filter(r => r.Status === 'Pub');
-        setRepos(filtered.length > 0 ? filtered : FALLBACK_REPOSITORIES);
+        
+        // Deduplicate by repo name
+        const uniqueRepos = Array.from(new Map(filtered.map(repo => [repo.Repo, repo])).values());
+
+        setRepos(uniqueRepos.length > 0 ? uniqueRepos : FALLBACK_REPOSITORIES);
         
         // Extract unique languages used across repos
         const langs = new Set<string>();
-        filtered.forEach(repo => {
+        uniqueRepos.forEach(repo => {
           if (repo.Langs) {
             Object.keys(repo.Langs).forEach(l => langs.add(l));
           }
@@ -244,7 +263,7 @@ export default function App() {
     const logSteps = [
       'Establishing TLS handshake secure protocols...',
       'Bundling payload schema variables...',
-      'Piping transmission to mail relay pd@mrc.com...',
+      'Piping transmission to secure relay...',
       'Verifying payload integrity checks: OK',
       'Data synchronized successfully. Transmission terminated.'
     ];
@@ -261,10 +280,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-primary/30 selection:text-primary relative overflow-hidden">
+    <div className="min-h-screen bg-bg-main text-text-main selection:bg-primary-alpha-strong selection:text-primary relative overflow-hidden">
       
       {/* 1. Global Scroll Progress Tracker */}
-      <div className="fixed top-0 left-0 w-full h-[3px] bg-slate-950 z-[9999]">
+      <div className="fixed top-0 left-0 w-full h-[3px] bg-bg-card z-[9999]">
         <div 
           style={{ width: `${scrollProgress}%` }}
           className="h-full bg-gradient-to-r from-primary via-amber-400 to-secondary shadow-[0_0_12px_rgba(255,153,0,0.8)] transition-all duration-75"
@@ -273,10 +292,10 @@ export default function App() {
 
       {/* 2. Ambient High-Tech Grid & Orbs (Frosted Glass Theme) */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,153,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,153,0,0.02)_1px,transparent_1px)] bg-[size:40px_40px] mask-image-[radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
-        <div className="absolute -top-20 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute top-1/2 -right-20 w-80 h-80 bg-secondary/10 rounded-full blur-[100px]" />
-        <div className="absolute -bottom-20 left-1/3 w-[500px] h-64 bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(var(--color-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-grid)_1px,transparent_1px)] bg-[size:40px_40px] mask-image-[radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
+        <div className="absolute -top-20 -left-20 w-96 h-96 bg-primary-alpha rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute top-1/2 -right-20 w-80 h-80 bg-secondary-alpha rounded-full blur-[100px]" />
+        <div className="absolute -bottom-20 left-1/3 w-[500px] h-64 bg-primary-alpha rounded-full blur-[120px]" />
       </div>
 
       {/* 3. Global Loading Screen */}
@@ -286,7 +305,7 @@ export default function App() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
-            className="fixed inset-0 z-[99999] bg-[#020617] flex flex-col items-center justify-center p-6 select-none"
+            className="fixed inset-0 z-[99999] bg-bg-main flex flex-col items-center justify-center p-6 select-none"
           >
             <div className="flex flex-col items-center max-w-sm w-full text-center">
               <motion.div
@@ -323,13 +342,11 @@ export default function App() {
         <div className="glass-panel px-6 py-3 border border-white/10 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.5)] bg-white/5 backdrop-blur-md rounded-full">
           {/* Logo */}
           <div 
-            onClick={() => setActiveTab('workspace')}
+            onClick={() => setActiveTab('overview')}
             className="flex items-center gap-2.5 cursor-pointer select-none"
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5 shadow-[0_0_12px_rgba(255,153,0,0.3)] flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center font-mono font-black text-xs text-primary">
-                PB
-              </div>
+              <img className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center font-mono font-black text-xs text-primary" src="/src/144.png" />
             </div>
             <div className="font-mono font-black text-sm tracking-tight text-slate-200">
               <span className="text-primary">PRO</span> BANDEY
@@ -337,62 +354,64 @@ export default function App() {
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-1 md:gap-1.5 font-mono text-[10px] md:text-xs">
+          <nav className="flex items-center gap-1 md:gap-1.5 font-mono text-[10px] md:text-xs" aria-label="Main Navigation">
             <button
-              onClick={() => setActiveTab('workspace')}
+              onClick={() => setActiveTab('overview')}
+              aria-label="Navigate to Overview"
+              aria-current={activeTab === 'overview' ? 'page' : undefined}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
-                activeTab === 'workspace' 
+                activeTab === 'overview' 
                   ? 'bg-primary/10 border border-primary/30 text-primary font-bold' 
                   : 'text-slate-400 hover:text-slate-100 border border-transparent'
               }`}
             >
-              WORKSPACE
+              OVERVIEW
             </button>
             <button
-              onClick={() => setActiveTab('registry')}
+              onClick={() => setActiveTab('projects')}
+              aria-label="Navigate to Projects Registry"
+              aria-current={activeTab === 'projects' ? 'page' : undefined}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
-                activeTab === 'registry' 
+                activeTab === 'projects' 
                   ? 'bg-primary/10 border border-primary/30 text-primary font-bold' 
                   : 'text-slate-400 hover:text-slate-100 border border-transparent'
               }`}
             >
               PROJECTS
             </button>
-            {activeReadmeRepo && (
-              <button
-                onClick={() => setActiveTab('details')}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
-                  activeTab === 'details' 
-                    ? 'bg-primary/10 border border-primary/30 text-primary font-bold' 
-                    : 'text-slate-400 hover:text-slate-100 border border-transparent'
-                }`}
-              >
-                DETAILS
-              </button>
-            )}
-            {activePreview && (
-              <button
-                onClick={() => setActiveTab('preview')}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
-                  activeTab === 'preview' 
-                    ? 'bg-primary/10 border border-primary/30 text-primary font-bold' 
-                    : 'text-slate-400 hover:text-slate-100 border border-transparent'
-                }`}
-              >
-                PREVIEW
-              </button>
-            )}
+            <button
+              onClick={() => setActiveTab('contact')}
+              aria-label="Navigate to Contact"
+              aria-current={activeTab === 'contact' ? 'page' : undefined}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
+                activeTab === 'contact' 
+                  ? 'bg-primary/10 border border-primary/30 text-primary font-bold' 
+                  : 'text-slate-400 hover:text-slate-100 border border-transparent'
+              }`}
+            >
+              CONTACT
+            </button>
           </nav>
 
-          {/* Active Status Display */}
-          <div className="hidden sm:flex items-center gap-2 bg-green-500/5 border border-green-500/20 px-3.5 py-1.5 rounded-full select-none">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            <span className="font-mono text-[10px] font-bold text-green-500 uppercase tracking-wider">
-              SYSTEM ONLINE
-            </span>
+          {/* Right Section: Status & Theme Toggle */}
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2 bg-secondary-alpha border border-secondary/20 px-3.5 py-1.5 rounded-full select-none">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+              </span>
+              <span className="font-mono text-[10px] font-bold text-secondary uppercase tracking-wider">
+                SYSTEM ONLINE
+              </span>
+            </div>
+
+            <button
+              onClick={() => setTheme(prev => prev === 'slate-midnight' ? 'light-cyber' : 'slate-midnight')}
+              aria-label="Toggle theme"
+              className="p-2 rounded-full border border-border hover:bg-bg-card hover:border-primary/50 text-text-muted hover:text-primary transition-all cursor-pointer bg-bg-main"
+            >
+              {theme === 'slate-midnight' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           </div>
         </div>
       </header>
@@ -401,8 +420,8 @@ export default function App() {
       <main className="relative z-10 pt-28 pb-16 min-h-[calc(100vh-80px)]">
         <AnimatePresence mode="wait">
           
-          {/* TAB 1: WORKSPACE / LANDING PAGE */}
-          {activeTab === 'workspace' && (
+          {/* TAB 1: OVERVIEW / LANDING PAGE */}
+          {activeTab === 'overview' && (
             <motion.div
               key="workspace-view"
               initial={{ opacity: 0, y: 15 }}
@@ -436,7 +455,7 @@ export default function App() {
                   {/* Actions buttons */}
                   <div className="flex flex-wrap gap-3 pt-2">
                     <button
-                      onClick={() => setActiveTab('registry')}
+                      onClick={() => setActiveTab('projects')}
                       className="bg-primary text-slate-950 hover:bg-primary/90 font-mono font-bold text-xs py-3.5 px-6 rounded-xl flex items-center gap-2 transition-all duration-200 shadow-lg shadow-primary/20 active:scale-95 cursor-pointer"
                     >
                       <span>EXPLORE REGISTRY</span>
@@ -453,8 +472,19 @@ export default function App() {
 
                 {/* Right Area: Shell Emulator Card */}
                 <div className="lg:col-span-5 w-full">
-                  <Terminal onNavigateToProjects={() => setActiveTab('registry')} />
+                  <Terminal onNavigateToProjects={() => setActiveTab('projects')} />
                 </div>
+              </section>
+
+              {/* Activity Intensity Chart Section */}
+              <section className="space-y-6 pt-4">
+                <div className="flex items-center gap-3 border-b border-border pb-2">
+                  <Database className="w-5 h-5 text-primary" />
+                  <h2 className="font-mono text-sm font-bold text-text-main tracking-widest uppercase">
+                    DATA_METRICS: ACTIVITY & USAGE
+                  </h2>
+                </div>
+                <ActivityChart repos={repos} />
               </section>
 
               {/* Core Capabilities Grid Section */}
@@ -506,9 +536,21 @@ export default function App() {
                   })}
                 </div>
               </section>
+            </motion.div>
+          )}
 
+          {/* TAB 3: CONTACT SECTION */}
+          {activeTab === 'contact' && (
+            <motion.div
+              key="contact-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="container px-4 md:px-8 max-w-6xl space-y-12"
+            >
               {/* Connect Section Form */}
-              <section className="glass-panel max-w-2xl mx-auto border border-white/10 p-8 relative overflow-hidden">
+              <section className="glass-panel max-w-2xl mx-auto border border-white/10 p-8 relative overflow-hidden mt-6">
                 <div className="absolute top-0 right-0 p-4 font-mono text-[9px] text-slate-800 select-none">
                   SECURE_SMTP_NODE
                 </div>
@@ -616,7 +658,7 @@ export default function App() {
           )}
 
           {/* TAB 2: REPOSITORY REGISTRY */}
-          {activeTab === 'registry' && (
+          {activeTab === 'projects' && (
             <motion.div
               key="registry-view"
               initial={{ opacity: 0, y: 15 }}
@@ -634,6 +676,63 @@ export default function App() {
                   Dynamic database sync tracking active deployments, system caches, and architectural packages.
                 </p>
               </div>
+
+              {/* Portfolio Summary Card */}
+              {repos.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="glass-panel p-5 border border-white/5 flex items-center gap-4 hover:border-primary/20 transition-all">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <TerminalSquare className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Total Repositories</p>
+                      <p className="text-2xl font-bold font-mono text-slate-200">{repos.length}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="glass-panel p-5 border border-white/5 flex items-center gap-4 hover:border-amber-400/20 transition-all">
+                    <div className="w-12 h-12 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center">
+                      <Star className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Global Stars</p>
+                      <p className="text-2xl font-bold font-mono text-slate-200">
+                        {repos.reduce((sum, r) => sum + (r.Stars || 0), 0)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="glass-panel p-5 border border-white/5 flex items-center gap-4 hover:border-secondary/20 transition-all">
+                    <div className="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
+                      <CodeXml className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Top Languages</p>
+                      <div className="flex gap-1.5 mt-1">
+                        {(() => {
+                          const langCounts: Record<string, number> = {};
+                          repos.forEach(repo => {
+                            if (repo.Langs) {
+                              Object.entries(repo.Langs).forEach(([l, pct]) => {
+                                langCounts[l] = (langCounts[l] || 0) + pct;
+                              });
+                            }
+                          });
+                          const topLangs = Object.entries(langCounts)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 3)
+                            .map(e => e[0]);
+                          return topLangs.map(l => (
+                            <span key={l} className="px-2 py-0.5 rounded text-[10px] font-mono border border-white/10 text-slate-300">
+                              {l}
+                            </span>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Dynamic Filter Controls Panel */}
               <div className="glass-panel p-4 border border-white/10 bg-white/5 backdrop-blur-md flex flex-col gap-4">
@@ -743,11 +842,9 @@ export default function App() {
                           repo={repo}
                           onOpenReadme={(name) => {
                             setActiveReadmeRepo(name);
-                            setActiveTab('details');
                           }}
                           onOpenPreview={(name, url) => {
                             setActivePreview({ repo: name, url });
-                            setActiveTab('preview');
                           }}
                           onLanguageHover={handleLanguageHover}
                           onLanguageLeave={handleLanguageLeave}
@@ -792,27 +889,41 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* C. Details Tab */}
-          {activeTab === 'details' && (
-            <ReadmeDrawer
-              repo={repos.find(r => r.Repo === activeReadmeRepo) || null}
-              isOpen={activeTab === 'details'}
-              onClose={() => setActiveTab('registry')}
-            />
-          )}
-
-          {/* D. Preview Tab */}
-          {activeTab === 'preview' && (
-            <PreviewDrawer
-              repoName={activePreview?.repo || null}
-              previewUrl={activePreview?.url || null}
-              isOpen={activeTab === 'preview'}
-              onClose={() => setActiveTab('registry')}
-            />
-          )}
-
         </AnimatePresence>
+
       </main>
+
+      {/* MODALS */}
+      <AnimatePresence>
+        {/* C. Details Modal (Readme Drawer) Backdrop */}
+        {(activeReadmeRepo || activePreview) && (
+          <motion.div
+            key="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              setActiveReadmeRepo(null);
+              setActivePreview(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+        
+      <ReadmeDrawer
+        repo={repos.find(r => r.Repo === activeReadmeRepo) || null}
+        isOpen={!!activeReadmeRepo}
+        onClose={() => setActiveReadmeRepo(null)}
+      />
+
+      {/* D. Preview Modal (Preview Drawer) */}
+      <PreviewDrawer
+        repoName={activePreview?.repo || null}
+        previewUrl={activePreview?.url || null}
+        isOpen={!!activePreview}
+        onClose={() => setActivePreview(null)}
+      />
 
       {/* 5. Tooltips */}
       <LanguageTooltip 
@@ -825,15 +936,7 @@ export default function App() {
       <footer className="relative z-10 bg-slate-950 border-t border-slate-900 py-6 select-none">
         <div className="container max-w-6xl px-4 md:px-8 flex flex-col md:flex-row gap-4 items-center justify-between font-mono text-[11px] text-slate-500">
           <div>
-            &copy; {new Date().getFullYear()} PRO BANDEY. ALL RIGHTS RESERVED. &bull;{' '}
-            <a 
-              href="https://github.com/Pro-bandey/Pro-bandey/blob/main/LICENSE" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="hover:text-primary underline decoration-slate-800 transition-colors"
-            >
-              LICENSE
-            </a>
+            &copy; {new Date().getFullYear()} PRO BANDEY. ALL RIGHTS RESERVED.
           </div>
 
           <div className="flex items-center gap-4">

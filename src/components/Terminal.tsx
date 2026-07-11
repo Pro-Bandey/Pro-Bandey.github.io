@@ -58,7 +58,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
         let currentTyped = '';
         const cmdText = step.cmd;
         setLines(prev => [...prev, { text: '', type: 'input' }]);
-
+        
         for (let i = 0; i < cmdText.length; i++) {
           await delay(45);
           if (!active) return;
@@ -151,7 +151,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
     } else if (cmd === 'contact') {
       responseLines = [
         { text: '📨 SYSTEM COMMUNICATION CHANNELS:', type: 'success' },
-        { text: '  • Mail: pb@mrc.com', type: 'output' },
+        { text: '  • Mail: rm4814691@gmail.com', type: 'output' },
         { text: '  • GitHub: https://github.com/Pro-bandey', type: 'output' },
         { text: 'Feel free to open a transmission for engineering consultations.', type: 'output' }
       ];
@@ -184,7 +184,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
   };
 
   return (
-    <div
+    <div 
       className="glass-panel overflow-hidden border border-white/10 flex flex-col h-[350px] cursor-text bg-white/5 backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
       onClick={handleTerminalClick}
     >
@@ -253,8 +253,10 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
 
       {/* Terminal Input Line */}
       <div className="p-3 bg-black/30 border-t border-white/10 flex items-center gap-3">
-        <span className="text-primary font-mono font-bold select-none">$</span>
+        <span className="text-primary font-mono font-bold select-none" aria-hidden="true">$</span>
+        <label htmlFor="terminal-input" className="sr-only">Terminal Input</label>
         <input
+          id="terminal-input"
           ref={inputRef}
           type="text"
           value={inputValue}
@@ -268,6 +270,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
           onClick={() => handleCommandSubmit(inputValue)}
           disabled={isTypingInitial || !inputValue.trim()}
           className="text-slate-500 hover:text-primary disabled:text-slate-700 disabled:hover:text-slate-700 transition-colors cursor-pointer"
+          aria-label="Send command"
           title="Send command"
         >
           <CornerDownLeft className="w-4 h-4" />

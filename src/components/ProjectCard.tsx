@@ -27,16 +27,26 @@ export default function ProjectCard({
       setTimeout(() => setCopied(false), 2000);
     });
   };
-  // Check if repository is "new" (created within last 30 days or marked as new)
+  // Check if repository is "new" (created within last 30 days)
   const isNewRepository = () => {
     if (!repo.Date) return false;
     const createdDate = new Date(repo.Date);
     const timeDiff = new Date().getTime() - createdDate.getTime();
     const daysDiff = timeDiff / (1000 * 3600 * 24);
-    return daysDiff <= 60; // 60 days for sample data realism
+    return daysDiff <= 30; // 30 days for new repos
   };
 
   const isNew = isNewRepository();
+
+  const isRecentlyUpdated = () => {
+    if (!repo.UpdatedAt || isNew) return false;
+    const updatedDate = new Date(repo.UpdatedAt);
+    const timeDiff = new Date().getTime() - updatedDate.getTime();
+    const daysDiff = timeDiff / (1000 * 3600 * 24);
+    return daysDiff <= 30; // 30 days for recently updated
+  };
+
+  const isUpdated = isRecentlyUpdated();
   const sortedLangs = repo.Langs ? Object.entries(repo.Langs).sort((a, b) => b[1] - a[1]) : [];
   
   // Format dates elegantly
@@ -50,11 +60,17 @@ export default function ProjectCard({
 
   return (
     <div className="glass-panel group relative flex flex-col h-full overflow-hidden border border-white/10 hover:border-primary/30 bg-white/5 backdrop-blur-md transition-all duration-300">
-      {/* New Badge */}
+      {/* New / Updated Badge */}
       {isNew && (
         <div className="absolute top-3 left-3 z-10 bg-green-500 text-slate-950 font-mono font-bold text-[10px] px-2 py-0.5 rounded shadow-[0_0_12px_rgba(34,197,94,0.4)] flex items-center gap-1">
           <Sparkles className="w-3 h-3 animate-pulse" />
           <span>NEW</span>
+        </div>
+      )}
+      {!isNew && isUpdated && (
+        <div className="absolute top-3 left-3 z-10 bg-amber-500 text-slate-950 font-mono font-bold text-[10px] px-2 py-0.5 rounded shadow-[0_0_12px_rgba(245,158,11,0.4)] flex items-center gap-1">
+          <Sparkles className="w-3 h-3 animate-pulse" />
+          <span>UPDATED</span>
         </div>
       )}
 

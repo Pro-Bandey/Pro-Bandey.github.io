@@ -2,6 +2,7 @@ export interface Repository {
   Repo: string;
   Status: string;
   Date: string;
+  UpdatedAt?: string;
   Banner?: string;
   Langs?: Record<string, number>;
   Desc: string;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
-import { X, Loader2, Sparkles, BookOpen, Star, Calendar, Share2, Check, CodeXml } from 'lucide-react';
+import { X, Loader2, Sparkles, BookOpen, Star, Calendar, Share2, Check, CodeXml, Copy, Maximize2, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Repository, LANGUAGE_COLORS } from '../types';
 
@@ -40,6 +40,26 @@ const copyToClipboard = async (text: string) => {
     document.body.removeChild(textArea);
     return false;
   }
+};
+
+const CopyButton = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    const success = await copyToClipboard(text);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-slate-700 cursor-pointer"
+      title="Copy to clipboard"
+    >
+      {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
 };
 
 const rewriteMarkdownUrls = (text: string, repoName: string, branch: string) => {
@@ -81,6 +101,7 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
   const [copiedType, setCopiedType] = useState<'link' | 'banner' | 'snippet' | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const repoName = repo?.Repo || null;
 
@@ -127,12 +148,16 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isFullscreen]);
 
   const handleShareCopy = async (text: string, type: 'link' | 'banner' | 'snippet') => {
     const success = await copyToClipboard(text);
@@ -140,6 +165,40 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
       setCopiedType(type);
       setTimeout(() => setCopiedType(null), 2000);
     }
+  };
+
+  const PreBlock = ({ children, ...props }: any) => {
+    const getCodeString = (children: any): string => {
+      let codeString = '';
+      React.Children.forEach(children, (child) => {
+        if (React.isValidElement(child)) {
+          const props = (child as any).props;
+          if (props && props.children) {
+            if (typeof props.children === 'string') {
+               codeString += props.children;
+            } else if (Array.isArray(props.children)) {
+               codeString += props.children.join('');
+            }
+          }
+        } else if (typeof child === 'string') {
+          codeString += child;
+        }
+      });
+      return codeString;
+    };
+    
+    const textContent = getCodeString(children);
+  
+    return (
+      <div className="relative group my-4">
+        <div className="absolute right-2 top-2 z-10">
+          <CopyButton text={textContent} />
+        </div>
+        <pre className="!my-0" {...props}>
+          {children}
+        </pre>
+      </div>
+    );
   };
 
   return (
@@ -150,7 +209,11 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -15 }}
           transition={{ duration: 0.3 }}
-          className="w-full max-w-6xl mx-auto space-y-6"
+          className={
+            isFullscreen
+              ? "fixed inset-0 md:inset-4 z-[2100] bg-bg-main overflow-y-auto space-y-6 p-4 md:p-6 rounded-none md:rounded-2xl border-none md:border md:border-border shadow-2xl"
+              : "fixed inset-x-0 bottom-0 top-20 md:top-24 md:inset-x-8 lg:inset-x-24 z-[2100] bg-bg-main overflow-y-auto space-y-6 p-4 md:p-8 rounded-t-2xl md:rounded-2xl border border-border shadow-[0_-20px_60px_rgba(0,0,0,0.5)]"
+          }
         >
           {/* Article Navigation Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/40 border border-white/5 rounded-xl px-5 py-3 select-none">
@@ -162,6 +225,14 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
             </div>
             
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-white transition-colors bg-slate-950 border border-slate-800 hover:border-slate-700 px-3.5 py-1.5 rounded cursor-pointer"
+                title={isFullscreen ? "Restore size" : "Expand to full screen"}
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                <span className="hidden sm:inline">{isFullscreen ? 'RESTORE' : 'EXPAND'}</span>
+              </button>
               <button
                 onClick={onClose}
                 className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-white transition-colors bg-slate-950 border border-slate-800 hover:border-slate-700 px-3.5 py-1.5 rounded cursor-pointer"
@@ -210,7 +281,14 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
                   <div className="lg:col-span-2 space-y-6">
                     {content ? (
                       <div className="markdown-body prose prose-invert max-w-none prose-amber prose-headings:font-mono prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-p:text-slate-400 prose-p:leading-relaxed prose-a:text-primary prose-code:font-mono prose-code:text-primary/90 prose-pre:bg-slate-900/60 prose-pre:border prose-pre:border-primary/5">
-                        <Markdown rehypePlugins={[rehypeRaw]}>{content}</Markdown>
+                        <Markdown 
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            pre: PreBlock
+                          }}
+                        >
+                          {content}
+                        </Markdown>
                       </div>
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-center gap-4 py-16 max-w-md mx-auto">

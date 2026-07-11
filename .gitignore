@@ -1,5 +1,6 @@
 node_modules/
 build/
+dist/
 coverage/
 .DS_Store
 *.log
@@ -7,3 +8,4 @@ coverage/
 !.env.example
 /.env.example
 /metadata.json
+/dist/
