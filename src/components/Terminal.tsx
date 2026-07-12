@@ -151,7 +151,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
     } else if (cmd === 'contact') {
       responseLines = [
         { text: '📨 SYSTEM COMMUNICATION CHANNELS:', type: 'success' },
-        { text: '  • Mail: rm4814691@gmail.com', type: 'output' },
+        { text: '  • Mail: pb@mrc.com', type: 'output' },
         { text: '  • GitHub: https://github.com/Pro-bandey', type: 'output' },
         { text: 'Feel free to open a transmission for engineering consultations.', type: 'output' }
       ];

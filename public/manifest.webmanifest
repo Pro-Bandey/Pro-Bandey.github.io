@@ -83,13 +83,13 @@
     {
       "src": "src/social-.png",
       "form_factor": "wide",
-      "sizes": "2560x1440",
+      "sizes": "1440x720",
       "type": "image/png",
       "label": "ScreenShot Of Site"
     },
     {
-      "src": "src/social-.png",
-      "sizes": "2560x1440",
+      "src": "src/social_.png",
+      "sizes": "720x1440",
       "type": "image/png",
       "label": "ScreenShot Of Site"
     }
