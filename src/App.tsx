@@ -317,7 +317,7 @@ export default function App() {
               </motion.div>
               
               <h2 className="font-mono text-lg font-black tracking-wider text-primary mb-1">
-                PRO BANDEY SYSTEM
+                PRO BANDEY
               </h2>
               
               <p className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.25em] animate-pulse">
