@@ -193,7 +193,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
         <div className="flex gap-2">
           <span className="w-3 h-3 rounded-full bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-pulse"></span>
           <span className="w-3 h-3 rounded-full bg-yellow-500/80 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></span>
-          <span className="w-3 h-3 rounded-full bg-green-500/80 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span>
+          <span className="w-3 h-3 rounded-full bg-[#00dd00]/80 shadow-[0_0_8px_rgba(0,221,0,0.5)]"></span>
         </div>
         <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
           <TerminalIcon className="w-3.5 h-3.5 text-primary" />
@@ -214,7 +214,7 @@ export default function Terminal({ onNavigateToProjects }: TerminalProps) {
             );
           }
           let colorClass = 'text-slate-300';
-          if (line.type === 'success') colorClass = 'text-green-400 font-medium';
+          if (line.type === 'success') colorClass = 'text-[#00dd00] font-medium';
           if (line.type === 'error') colorClass = 'text-red-400 font-medium';
 
           return (

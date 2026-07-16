@@ -1,14 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
-import { X, Loader2, Sparkles, BookOpen, Star, Calendar, Share2, Check, CodeXml, Copy, Maximize2, Minimize2 } from 'lucide-react';
+import { 
+  X, 
+  Loader2, 
+  Sparkles, 
+  BookOpen, 
+  Star, 
+  Calendar, 
+  Share2, 
+  Check, 
+  CodeXml, 
+  Copy, 
+  Maximize2, 
+  Minimize2,
+  Clock,
+  User,
+  ChevronDown
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Repository, LANGUAGE_COLORS } from '../types';
+import { getRepositoryTags } from '../utils';
 
 interface ReadmeDrawerProps {
   repo: Repository | null;
   isOpen: boolean;
   onClose: () => void;
+  allRepos?: Repository[];
+  onOpenRepo?: (repoName: string) => void;
 }
 
 const copyToClipboard = async (text: string) => {
@@ -57,13 +76,13 @@ const CopyButton = ({ text }: { text: string }) => {
       className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-slate-700 cursor-pointer"
       title="Copy to clipboard"
     >
-      {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? <Check className="w-3.5 h-3.5 text-[#00dd00]" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 };
 
-const rewriteMarkdownUrls = (text: string, repoName: string, branch: string) => {
-  const baseRawUrl = `https://raw.githubusercontent.com/Pro-bandey/${repoName}/refs/heads/${branch}/`;
+const rewriteMarkdownUrls = (text: string, repoName: string, owner: string, branch: string) => {
+  const baseRawUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/refs/heads/${branch}/`;
   
   // 1. Rewrite Markdown images: ![alt](relative_url)
   let transformed = text.replace(/(!\[.*?\]\()(.+?)(\))/g, (match, prefix, url, suffix) => {
@@ -89,21 +108,39 @@ const rewriteMarkdownUrls = (text: string, repoName: string, branch: string) => 
       return match;
     }
     const cleanUrl = url.replace(/^\.\//, '').replace(/^\//, '');
-    const baseGithubUrl = `https://github.com/Pro-bandey/${repoName}/blob/${branch}/`;
+    const baseGithubUrl = `https://github.com/${owner}/${repoName}/blob/${branch}/`;
     return `${prefix}${baseGithubUrl}${cleanUrl}${suffix}`;
   });
 
   return transformed;
 };
 
-export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProps) {
+export default function ReadmeDrawer({ repo, isOpen, onClose, allRepos = [], onOpenRepo }: ReadmeDrawerProps) {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
   const [copiedType, setCopiedType] = useState<'link' | 'banner' | 'snippet' | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isTocOpen, setIsTocOpen] = useState(false);
 
   const repoName = repo?.Repo || null;
+  const owner = repo?.Owner || 'Pro-bandey';
+
+  // Find related repositories that share tags with the current repository
+  const currentTags = repo ? getRepositoryTags(repo) : [];
+  const relatedRepos = repo && allRepos
+    ? allRepos
+        .filter(r => r.Repo !== repo.Repo)
+        .map(r => {
+          const rTags = getRepositoryTags(r);
+          const sharedCount = rTags.filter(t => currentTags.includes(t)).length;
+          return { repo: r, score: sharedCount, tags: rTags };
+        })
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.repo)
+        .slice(0, 3)
+    : [];
 
   useEffect(() => {
     if (!isOpen || !repoName) return;
@@ -113,8 +150,8 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
       setError(false);
       setContent('');
 
-      const mainUrl = `https://raw.githubusercontent.com/Pro-bandey/${repoName}/refs/heads/main/README.md`;
-      const masterUrl = `https://raw.githubusercontent.com/Pro-bandey/${repoName}/refs/heads/master/README.md`;
+      const mainUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/refs/heads/main/README.md`;
+      const masterUrl = `https://raw.githubusercontent.com/${owner}/${repoName}/refs/heads/master/README.md`;
 
       try {
         let response = await fetch(mainUrl);
@@ -131,7 +168,7 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
         }
 
         const text = await response.text();
-        const transformedText = rewriteMarkdownUrls(text, repoName, resolvedBranch);
+        const transformedText = rewriteMarkdownUrls(text, repoName, owner, resolvedBranch);
         setContent(transformedText);
       } catch (err) {
         console.error('Failed to retrieve markdown', err);
@@ -142,7 +179,7 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
     };
 
     fetchReadme();
-  }, [repoName, isOpen]);
+  }, [repoName, owner, isOpen]);
 
   // Handle ESC key to close drawer
   useEffect(() => {
@@ -164,6 +201,40 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
     if (success) {
       setCopiedType(type);
       setTimeout(() => setCopiedType(null), 2000);
+    }
+  };
+
+  // Extract headings for Table Of Contents
+  const tocItems = useMemo(() => {
+    if (!content) return [];
+    const lines = content.split('\n');
+    const items: { text: string; id: string; level: number }[] = [];
+    
+    lines.forEach((line) => {
+      const match = line.match(/^(#{2,3})\s+(.+)$/);
+      if (match) {
+        const level = match[1].length; // 2 for h2, 3 for h3
+        const text = match[2]
+          .replace(/\[.*?\]\(.*?\)/g, '') // Strip links
+          .replace(/<.*?>/g, '') // Strip HTML tags
+          .trim();
+        const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        items.push({ text, id, level });
+      }
+    });
+    return items;
+  }, [content]);
+
+  // Calculate estimated reading time
+  const readingTime = (text: string) => {
+    const words = text.trim().split(/\s+/).length;
+    return Math.max(1, Math.round(words / 200));
+  };
+
+  const scrollToHeading = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -194,7 +265,7 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
         <div className="absolute right-2 top-2 z-10">
           <CopyButton text={textContent} />
         </div>
-        <pre className="!my-0" {...props}>
+        <pre className="!my-0 animate-fade-in" {...props}>
           {children}
         </pre>
       </div>
@@ -211,7 +282,7 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
           transition={{ duration: 0.3 }}
           className={
             isFullscreen
-              ? "fixed inset-0 md:inset-4 z-[2100] bg-bg-main overflow-y-auto space-y-6 p-4 md:p-6 rounded-none md:rounded-2xl border-none md:border md:border-border shadow-2xl"
+              ? "fixed inset-0 z-[2100] bg-bg-main overflow-y-auto space-y-6 p-4 md:p-8 rounded-none border-none shadow-none"
               : "fixed inset-x-0 bottom-0 top-20 md:top-24 md:inset-x-8 lg:inset-x-24 z-[2100] bg-bg-main overflow-y-auto space-y-6 p-4 md:p-8 rounded-t-2xl md:rounded-2xl border border-border shadow-[0_-20px_60px_rgba(0,0,0,0.5)]"
           }
         >
@@ -275,43 +346,141 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
               )}
 
               {!loading && !error && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                   
                   {/* Left Side: README Markdown Content */}
-                  <div className="lg:col-span-2 space-y-6">
-                    {content ? (
-                      <div className="markdown-body prose prose-invert max-w-none prose-amber prose-headings:font-mono prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-p:text-slate-400 prose-p:leading-relaxed prose-a:text-primary prose-code:font-mono prose-code:text-primary/90 prose-pre:bg-slate-900/60 prose-pre:border prose-pre:border-primary/5">
-                        <Markdown 
-                          rehypePlugins={[rehypeRaw]}
-                          components={{
-                            pre: PreBlock
-                          }}
-                        >
-                          {content}
-                        </Markdown>
+                  <div className="lg:col-span-8 space-y-6">
+                    
+                    {/* Metadata Card (matches blog post style perfectly) */}
+                    <div className="glass-panel p-6 border border-white/5 space-y-4 bg-white/[0.01]">
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-mono text-slate-400">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-primary" />
+                          {repo.Date ? new Date(repo.Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Classified'}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-secondary" />
+                          {repo.Owner || 'Pro Bandey'}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-primary" />
+                          {readingTime(content)} min read
+                        </span>
                       </div>
-                    ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-center gap-4 py-16 max-w-md mx-auto">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                          <Sparkles className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-mono text-md font-bold text-slate-200 uppercase">No Content Configured</h3>
-                        <p className="text-xs text-slate-400">
-                          This workspace repository does not have a public specification markdown document.
+
+                      <h1 className="font-mono text-2xl md:text-3xl font-black text-slate-100 tracking-tight leading-tight uppercase">
+                        {repo.Repo}
+                      </h1>
+
+                      {repo.Desc && (
+                        <p className="text-sm text-slate-400 leading-relaxed italic border-l-2 border-primary/50 pl-4 bg-white/[0.02] py-2 rounded-r-lg">
+                          {repo.Desc}
                         </p>
+                      )}
+                    </div>
+
+                    {/* Table of Contents Dropdown (matches blog post style perfectly) */}
+                    {tocItems.length > 0 && (
+                      <div className="glass-panel border border-white/5 relative overflow-hidden transition-all duration-300 sticky top-20 md:top-24 z-[100] shadow-xl bg-slate-950/90 backdrop-blur-md">
+                        {/* Corner accents */}
+                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/50" />
+                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/50" />
+                        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary/50" />
+                        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/50" />
+                        
+                        <button 
+                          onClick={() => setIsTocOpen(!isTocOpen)}
+                          className="w-full flex items-center justify-between p-4 font-mono text-xs font-bold text-slate-200 uppercase tracking-wider hover:bg-white/[0.02] transition-colors focus:outline-none cursor-pointer"
+                        >
+                          <span className="flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-primary" />
+                            <span>Table of Contents ({tocItems.length} sections)</span>
+                          </span>
+                          <motion.div
+                            animate={{ rotate: isTocOpen ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                          </motion.div>
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                          {isTocOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.25, ease: "easeInOut" }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-5 pt-0 border-t border-white/[0.03] bg-slate-950/10 max-h-[45vh] overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20">
+                                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 font-mono text-xs text-slate-400 pt-4">
+                                  {tocItems.map((item, idx) => (
+                                    <li 
+                                      key={idx} 
+                                      style={{ paddingLeft: `${(item.level - 2) * 12}px` }}
+                                      className="flex items-start gap-1.5 py-0.5 group"
+                                    >
+                                      <span className="text-primary select-none font-bold mt-0.5">›</span>
+                                      <button
+                                        onClick={() => scrollToHeading(item.id)}
+                                        className="text-left hover:text-primary hover:underline transition-colors focus:outline-none cursor-pointer line-clamp-1"
+                                      >
+                                        {item.text}
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     )}
+
+                    {/* Markdown Body container (matches blog post style perfectly) */}
+                    <div className="glass-panel p-6 md:p-10 border border-white/5 bg-slate-950/20">
+                      {content ? (
+                        <div className="markdown-body prose prose-invert max-w-none prose-amber prose-headings:font-mono prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-p:text-slate-400 prose-p:leading-relaxed prose-a:text-primary prose-code:font-mono prose-code:text-primary/90 prose-pre:bg-slate-900/60 prose-pre:border prose-pre:border-primary/5">
+                          <Markdown 
+                            rehypePlugins={[rehypeRaw]}
+                            components={{
+                              pre: PreBlock,
+                              h2: ({ node, ...props }) => {
+                                const id = String(props.children || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                return <h2 id={id} className="scroll-mt-24" {...props} />;
+                              },
+                              h3: ({ node, ...props }) => {
+                                const id = String(props.children || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                return <h3 id={id} className="scroll-mt-24" {...props} />;
+                              }
+                            }}
+                          >
+                            {content}
+                          </Markdown>
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-center gap-4 py-16 max-w-md mx-auto">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                            <Sparkles className="w-6 h-6" />
+                          </div>
+                          <h3 className="font-mono text-md font-bold text-slate-200 uppercase">No Content Configured</h3>
+                          <p className="text-xs text-slate-400">
+                            This workspace repository does not have a public specification markdown document.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Right Side: High-Tech Stats, Sparklines, and Actions Sidebar */}
-                  <div className="space-y-6">
+                  {/* Right Side Sidebar (with matching styling layout from blog post) */}
+                  <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
                     
                     {/* 1. Repository Quick Stats Panel */}
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 shadow-sm">
-                      <div className="flex items-center gap-2 font-mono text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-white/5">
-                        <BookOpen className="w-4 h-4 text-primary" />
-                        <span>Project Overview</span>
-                      </div>
+                    <div className="glass-panel p-5 border border-white/5 space-y-4">
+                      <h3 className="font-mono text-xs font-bold text-text-muted uppercase tracking-wider">
+                        PROJECT_OVERVIEW_MAP
+                      </h3>
                       
                       <div className="space-y-3">
                         <div className="flex items-center justify-between text-xs font-mono">
@@ -336,7 +505,7 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
                         </div>
                         <div className="flex items-center justify-between text-xs font-mono">
                           <span className="text-slate-500 uppercase">Status Node:</span>
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-500/10 border border-green-500/30 text-green-400 font-bold uppercase tracking-wider animate-pulse">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#00dd00]/10 border border-[#00dd00]/30 text-[#00dd00] font-bold uppercase tracking-wider animate-pulse">
                             ACTIVE ONLINE
                           </span>
                         </div>
@@ -345,14 +514,11 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
 
                     {/* 2. Mini Code Language distribution sparklines */}
                     {repo.Langs && Object.keys(repo.Langs).length > 0 && (
-                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 shadow-sm">
-                        <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-white/5">
-                          <span className="flex items-center gap-2">
-                            <CodeXml className="w-4 h-4 text-primary" />
-                            Language profile
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-normal">SVG Sparkline</span>
-                        </div>
+                      <div className="glass-panel p-5 border border-white/5 space-y-4">
+                        <h3 className="font-mono text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                          <CodeXml className="w-3.5 h-3.5 text-primary" />
+                          <span>LANGUAGE_PROFILE_</span>
+                        </h3>
                         
                         <div className="space-y-3">
                           {Object.entries(repo.Langs)
@@ -382,11 +548,11 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
                     )}
 
                     {/* 3. Deep-Link Share Options Panel */}
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 shadow-sm">
-                      <div className="flex items-center gap-2 font-mono text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-white/5">
-                        <Share2 className="w-4 h-4 text-primary" />
-                        <span>Share Repository</span>
-                      </div>
+                    <div className="glass-panel p-5 border border-white/5 space-y-4">
+                      <h3 className="font-mono text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                        <Share2 className="w-3.5 h-3.5 text-primary" />
+                        <span>SHARE_REPOSITORY_</span>
+                      </h3>
                       
                       <div className="space-y-3">
                         {/* Option A: Deep-Link URL */}
@@ -415,10 +581,10 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
                           <label className="block font-mono text-[10px] text-slate-500 uppercase tracking-wider">Social Banner image</label>
                           <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-lg p-1.5 pl-3">
                             <span className="font-mono text-[10px] text-slate-400 truncate flex-1 select-all">
-                              {repo.Banner || `https://socialify.git.ci/Pro-bandey/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1`}
+                              {repo.Banner || `https://socialify.git.ci/${owner}/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1`}
                             </span>
                             <button
-                              onClick={() => handleShareCopy(repo.Banner || `https://socialify.git.ci/Pro-bandey/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1`, 'banner')}
+                              onClick={() => handleShareCopy(repo.Banner || `https://socialify.git.ci/${owner}/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1`, 'banner')}
                               className="flex-shrink-0 p-1.5 bg-primary hover:bg-primary/90 text-slate-950 font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center justify-center min-w-[50px]"
                               title="Copy social banner URL"
                             >
@@ -436,10 +602,10 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
                           <label className="block font-mono text-[10px] text-slate-500 uppercase tracking-wider">Markdown Share Badge</label>
                           <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-lg p-1.5 pl-3">
                             <span className="font-mono text-[10px] text-slate-400 truncate flex-1 select-all">
-                              {`[![${repo.Repo} Banner](https://socialify.git.ci/Pro-bandey/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1)](${window.location.origin}${window.location.pathname}?id=${repo.Repo})`}
+                              {`[![${repo.Repo} Banner](https://socialify.git.ci/${owner}/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1)](${window.location.origin}${window.location.pathname}?id=${repo.Repo})`}
                             </span>
                             <button
-                              onClick={() => handleShareCopy(`[![${repo.Repo} Banner](https://socialify.git.ci/Pro-bandey/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1)](${window.location.origin}${window.location.pathname}?id=${repo.Repo})`, 'snippet')}
+                              onClick={() => handleShareCopy(`[![${repo.Repo} Banner](https://socialify.git.ci/${owner}/${repo.Repo}/image?theme=Dark&font=Inter&pattern=Solid&logo=Github&logoColor=6366f1)](${window.location.origin}${window.location.pathname}?id=${repo.Repo})`, 'snippet')}
                               className="flex-shrink-0 p-1.5 bg-primary hover:bg-primary/90 text-slate-950 font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center justify-center min-w-[50px]"
                               title="Copy markdown rich share snippet"
                             >
@@ -451,12 +617,58 @@ export default function ReadmeDrawer({ repo, isOpen, onClose }: ReadmeDrawerProp
                             </button>
                           </div>
                         </div>
-
                       </div>
                     </div>
 
+                    {/* 4. Related Projects (styled identical to related blog posts) */}
+                    {relatedRepos.length > 0 && (
+                      <div className="glass-panel p-5 border border-white/5 space-y-4">
+                        <h3 className="font-mono text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-primary" />
+                          <span>RELATED_PROJECTS_</span>
+                        </h3>
+                        <div className="space-y-3">
+                          {relatedRepos.map((related) => {
+                            const relatedTags = getRepositoryTags(related);
+                            return (
+                              <button
+                                key={related.Repo}
+                                onClick={() => onOpenRepo && onOpenRepo(related.Repo)}
+                                className="w-full text-left flex gap-3 p-2 rounded-xl bg-white/[0.01] hover:bg-white/[0.04] border border-transparent hover:border-white/5 transition-all duration-200 group/item cursor-pointer"
+                              >
+                                {related.Banner ? (
+                                  <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-slate-900 border border-white/5">
+                                    <img
+                                      src={related.Banner}
+                                      alt={related.Repo}
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-300"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-14 h-14 rounded-lg shrink-0 bg-slate-900/60 border border-white/5 flex items-center justify-center text-primary font-mono text-[10px] uppercase font-bold">
+                                    {related.Repo.slice(0, 3)}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                  <h4 className="font-mono text-[11px] font-bold text-slate-200 group-hover/item:text-primary transition-colors line-clamp-1 uppercase">
+                                    {related.Repo}
+                                  </h4>
+                                  <p className="text-[10px] text-slate-500 font-sans line-clamp-1 mt-0.5">
+                                    {related.Desc}
+                                  </p>
+                                  <span className="text-[8px] font-mono text-slate-500 mt-1 flex items-center gap-1 uppercase">
+                                    <Calendar className="w-2.5 h-2.5 text-primary" />
+                                    {related.Date ? new Date(related.Date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'N/A'}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-
                 </div>
               )}
             </div>

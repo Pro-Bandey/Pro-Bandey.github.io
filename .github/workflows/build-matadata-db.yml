@@ -2,7 +2,7 @@ name: Build Repositories Database
 
 on:
   # schedule:
-  #   - cron: '0 0 * * 0' # Runs every Sunday at midnight UTC
+  #   - cron: "0 0 * * 0" # Runs every Sunday at midnight UTC
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Fetch data and build db.json
         uses: actions/github-script@v7
@@ -31,13 +31,14 @@ jobs:
             const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
             async function generateDatabase() {
-              const username = 'Pro-bandey';
+              const username = 'MainRoute-Core';
 
               // Repositories to exclude
               const excludedRepos = [
-                'pro-bandey',
+               'pro-bandey',
                 'pro-bandey.github.io',
                 '.github'
+
               ].map(repo => repo.toLowerCase().trim());
 
               console.log(`Fetching repositories for ${username}...`);

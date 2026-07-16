@@ -16,7 +16,9 @@ import {
   Loader2, 
   AlertCircle,
   Sun,
-  Moon
+  Moon,
+  ChevronDown,
+  ArrowUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Repository, LANGUAGE_COLORS } from './types';
@@ -27,16 +29,19 @@ import LanguageTooltip from './components/LanguageTooltip';
 import ReadmeDrawer from './components/ReadmeDrawer';
 import PreviewDrawer from './components/PreviewDrawer';
 import { ActivityChart } from './components/ActivityChart';
+import { TechStack } from './components/TechStack';
+import BlogTab from './components/BlogTab';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'contact'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'blog' | 'contact'>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab === 'overview' || tab === 'projects' || tab === 'contact') return tab;
+    if (tab === 'overview' || tab === 'projects' || tab === 'blog' || tab === 'contact') return tab;
     return 'overview';
   });
   const [loadingApp, setLoadingApp] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [theme, setTheme] = useState<'slate-midnight' | 'light-cyber'>('slate-midnight');
 
   // Theme Sync
@@ -48,12 +53,66 @@ export default function App() {
   const [repos, setRepos] = useState<Repository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [reposError, setReposError] = useState(false);
+  const [githubProfile, setGithubProfile] = useState<any>(null);
 
   // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'projects' || !tab) {
+      return params.get('q') || '';
+    }
+    return '';
+  });
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'projects' || !tab) {
+      return params.get('fltr') || 'All';
+    }
+    return 'All';
+  });
+  const [sortBy, setSortBy] = useState<'updated' | 'stars' | 'name'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'projects' || !tab) {
+      const srt = params.get('srt');
+      if (srt === 'updated' || srt === 'stars' || srt === 'name') return srt as any;
+    }
+    return 'updated';
+  });
   const [availableLanguages, setAvailableLanguages] = useState<string[]>(['All']);
-  const [sortBy, setSortBy] = useState<'updated' | 'stars' | 'name'>('updated');
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+
+  // Blog Filter/Search/Sort State
+  const [blogSearchQuery, setBlogSearchQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'blog') {
+      return params.get('q') || '';
+    }
+    return '';
+  });
+  const [blogSelectedCategory, setBlogSelectedCategory] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'blog') {
+      return params.get('flter') || params.get('filter') || 'All';
+    }
+    return 'All';
+  });
+  const [blogSortBy, setBlogSortBy] = useState<'date-desc' | 'date-asc' | 'title-asc' | 'title-desc'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'blog') {
+      const srt = params.get('srt');
+      if (srt === 'date-desc' || srt === 'date-asc' || srt === 'title-asc' || srt === 'title-desc') {
+        return srt as any;
+      }
+    }
+    return 'date-desc';
+  });
+  const [activeBlogPostTitle, setActiveBlogPostTitle] = useState<string | null>(null);
 
   // Modals & Tooltips State
   const [activeReadmeRepo, setActiveReadmeRepo] = useState<string | null>(null);
@@ -78,6 +137,7 @@ export default function App() {
       if (windowHeight > 0) {
         setScrollProgress((window.scrollY / windowHeight) * 100);
       }
+      setShowScrollTop(window.scrollY > 300);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -86,27 +146,19 @@ export default function App() {
   // Sync URL parameters on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const fltrParam = params.get('fltr');
-    const qParam = params.get('q');
-    const srtParam = params.get('srt');
     const rdmParam = params.get('rdm') || params.get('id');
     const prvParam = params.get('prv') || params.get('prw');
 
-    if (fltrParam) {
-      setSelectedLanguage(fltrParam);
-    }
-    if (qParam) {
-      setSearchQuery(qParam);
-    }
-    if (srtParam) {
-      setSortBy(srtParam as 'updated' | 'stars' | 'name');
-    }
     if (rdmParam) {
       setActiveReadmeRepo(rdmParam);
     } else if (prvParam) {
       setActivePreview({ repo: prvParam, url: '' });
     }
   }, []);
+
+  const prevTabRef = useRef(activeTab);
+  const prevReadmeRef = useRef(activeReadmeRepo);
+  const prevPreviewRef = useRef(activePreview?.repo || null);
 
   // Update URL parameters on any change (URL Syncing)
   useEffect(() => {
@@ -117,15 +169,29 @@ export default function App() {
     if (activeTab && activeTab !== 'overview') {
       params.set('tab', activeTab);
     }
-    if (selectedLanguage && selectedLanguage !== 'All') {
-      params.set('fltr', selectedLanguage);
+
+    if (activeTab === 'projects') {
+      if (selectedLanguage && selectedLanguage !== 'All') {
+        params.set('fltr', selectedLanguage);
+      }
+      if (searchQuery) {
+        params.set('q', searchQuery);
+      }
+      if (sortBy && sortBy !== 'updated') {
+        params.set('srt', sortBy);
+      }
+    } else if (activeTab === 'blog') {
+      if (blogSelectedCategory && blogSelectedCategory !== 'All') {
+        params.set('flter', blogSelectedCategory);
+      }
+      if (blogSearchQuery) {
+        params.set('q', blogSearchQuery);
+      }
+      if (blogSortBy && blogSortBy !== 'date-desc') {
+        params.set('srt', blogSortBy);
+      }
     }
-    if (searchQuery) {
-      params.set('q', searchQuery);
-    }
-    if (sortBy && sortBy !== 'updated') {
-      params.set('srt', sortBy);
-    }
+
     if (activeReadmeRepo) {
       params.set('rdm', activeReadmeRepo);
     }
@@ -135,8 +201,154 @@ export default function App() {
 
     const queryString = params.toString();
     const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
-    window.history.replaceState(null, '', newUrl);
-  }, [activeTab, selectedLanguage, searchQuery, sortBy, activeReadmeRepo, activePreview, loadingApp]);
+    const currentUrl = window.location.pathname + window.location.search;
+
+    const tabChanged = prevTabRef.current !== activeTab;
+    const readmeChanged = prevReadmeRef.current !== activeReadmeRepo;
+    const previewChanged = prevPreviewRef.current !== (activePreview?.repo || null);
+
+    prevTabRef.current = activeTab;
+    prevReadmeRef.current = activeReadmeRepo;
+    prevPreviewRef.current = activePreview?.repo || null;
+
+    if (newUrl !== currentUrl) {
+      if (tabChanged || readmeChanged || previewChanged) {
+        window.history.pushState(null, '', newUrl);
+      } else {
+        window.history.replaceState(null, '', newUrl);
+      }
+    }
+  }, [
+    activeTab, 
+    selectedLanguage, 
+    searchQuery, 
+    sortBy, 
+    blogSelectedCategory, 
+    blogSearchQuery, 
+    blogSortBy, 
+    activeReadmeRepo, 
+    activePreview, 
+    loadingApp
+  ]);
+
+  // Live Title Sync Effect
+  useEffect(() => {
+    // 1. Check if viewing a specific project or post
+    if (activeTab === 'projects') {
+      if (activeReadmeRepo) {
+        document.title = `${activeReadmeRepo} | Projects | Pro Bandey`;
+        return;
+      }
+      if (activePreview) {
+        document.title = `${activePreview.repo} | Projects | Pro Bandey`;
+        return;
+      }
+
+      const hasSearch = searchQuery.trim() !== '';
+      const hasFilter = selectedLanguage && selectedLanguage !== 'All';
+
+      if (hasSearch && hasFilter) {
+        document.title = `Search "${searchQuery}" & Filter By "${selectedLanguage}" | Projects | Pro Bandey`;
+      } else if (hasSearch) {
+        document.title = `Search "${searchQuery}" | Projects | Pro Bandey`;
+      } else if (hasFilter) {
+        document.title = `Filter By "${selectedLanguage}" | Projects | Pro Bandey`;
+      } else {
+        document.title = `Projects | Pro Bandey`;
+      }
+      return;
+    }
+
+    if (activeTab === 'blog') {
+      if (activeBlogPostTitle) {
+        document.title = `${activeBlogPostTitle} | Blog | Pro Bandey`;
+        return;
+      }
+
+      const hasSearch = blogSearchQuery.trim() !== '';
+      const hasFilter = blogSelectedCategory && blogSelectedCategory !== 'All';
+
+      if (hasSearch && hasFilter) {
+        document.title = `Search "${blogSearchQuery}" & Filter By "${blogSelectedCategory}" | Blog | Pro Bandey`;
+      } else if (hasSearch) {
+        document.title = `Search "${blogSearchQuery}" | Blog | Pro Bandey`;
+      } else if (hasFilter) {
+        document.title = `Filter By "${blogSelectedCategory}" | Blog | Pro Bandey`;
+      } else {
+        document.title = `Blog | Pro Bandey`;
+      }
+      return;
+    }
+
+    if (activeTab === 'overview') {
+      document.title = 'Pro Bandey | Engineering Elegant';
+      return;
+    }
+    if (activeTab === 'contact') {
+      document.title = `Contact | Pro Bandey`;
+      return;
+    }
+
+    document.title = 'Pro Bandey | Engineering Elegant';
+  }, [
+    activeTab,
+    activeReadmeRepo,
+    activePreview,
+    searchQuery,
+    selectedLanguage,
+    blogSearchQuery,
+    blogSelectedCategory,
+    activeBlogPostTitle
+  ]);
+
+  // Listen to browser popstate (back/forward buttons)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      
+      const tabParam = params.get('tab');
+      let currentTab: 'overview' | 'projects' | 'blog' | 'contact' = 'overview';
+      if (tabParam === 'overview' || tabParam === 'projects' || tabParam === 'blog' || tabParam === 'contact') {
+        setActiveTab(tabParam as any);
+        currentTab = tabParam as any;
+      } else {
+        setActiveTab('overview');
+      }
+
+      if (currentTab === 'projects') {
+        const fltrParam = params.get('fltr') || 'All';
+        setSelectedLanguage(fltrParam);
+
+        const qParam = params.get('q') || '';
+        setSearchQuery(qParam);
+
+        const srtParam = params.get('srt') || 'updated';
+        setSortBy(srtParam as any);
+      } else if (currentTab === 'blog') {
+        const flterParam = params.get('flter') || params.get('filter') || 'All';
+        setBlogSelectedCategory(flterParam);
+
+        const qParam = params.get('q') || '';
+        setBlogSearchQuery(qParam);
+
+        const srtParam = params.get('srt') || 'date-desc';
+        setBlogSortBy(srtParam as any);
+      }
+
+      const rdmParam = params.get('rdm') || params.get('id') || null;
+      setActiveReadmeRepo(rdmParam);
+
+      const prvParam = params.get('prv') || params.get('prw') || null;
+      if (prvParam) {
+        setActivePreview(prev => (prev?.repo === prvParam ? prev : { repo: prvParam, url: '' }));
+      } else {
+        setActivePreview(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Resolve preview URL when repositories load
   useEffect(() => {
@@ -171,10 +383,19 @@ export default function App() {
         if (!response.ok) {
           throw new Error('Endpoint lookup fault');
         }
-        const data: Repository[] = await response.json();
+        const rawJson = await response.json();
+        let loadedRepos: Repository[] = [];
+        if (Array.isArray(rawJson)) {
+          loadedRepos = rawJson;
+        } else if (rawJson && typeof rawJson === 'object') {
+          loadedRepos = rawJson.repos || [];
+          if (rawJson.user) {
+            setGithubProfile(rawJson.user);
+          }
+        }
         
         // Filter out non-public ones or order them
-        const filtered = data.filter(r => r.Status === 'Pub');
+        const filtered = loadedRepos.filter(r => r.Status === 'Pub');
         
         // Deduplicate by repo name
         const uniqueRepos = Array.from(new Map(filtered.map(repo => [repo.Repo, repo])).values());
@@ -338,11 +559,15 @@ export default function App() {
       </AnimatePresence>
 
       {/* 4. Global Navigation Header */}
-      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] w-[95%] max-w-6xl">
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-[2500] w-[95%] max-w-6xl">
         <div className="glass-panel px-6 py-3 border border-white/10 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.5)] bg-white/5 backdrop-blur-md rounded-full">
           {/* Logo */}
           <div 
-            onClick={() => setActiveTab('overview')}
+            onClick={() => {
+              setActiveTab('overview');
+              setActiveReadmeRepo(null);
+              setActivePreview(null);
+            }}
             className="flex items-center gap-2.5 cursor-pointer select-none"
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5 shadow-[0_0_12px_rgba(255,153,0,0.3)] flex items-center justify-center">
@@ -356,7 +581,11 @@ export default function App() {
           {/* Navigation Links */}
           <nav className="flex items-center gap-1 md:gap-1.5 font-mono text-[10px] md:text-xs" aria-label="Main Navigation">
             <button
-              onClick={() => setActiveTab('overview')}
+              onClick={() => {
+                setActiveTab('overview');
+                setActiveReadmeRepo(null);
+                setActivePreview(null);
+              }}
               aria-label="Navigate to Overview"
               aria-current={activeTab === 'overview' ? 'page' : undefined}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
@@ -368,7 +597,11 @@ export default function App() {
               OVERVIEW
             </button>
             <button
-              onClick={() => setActiveTab('projects')}
+              onClick={() => {
+                setActiveTab('projects');
+                setActiveReadmeRepo(null);
+                setActivePreview(null);
+              }}
               aria-label="Navigate to Projects Registry"
               aria-current={activeTab === 'projects' ? 'page' : undefined}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
@@ -380,7 +613,27 @@ export default function App() {
               PROJECTS
             </button>
             <button
-              onClick={() => setActiveTab('contact')}
+              onClick={() => {
+                setActiveTab('blog');
+                setActiveReadmeRepo(null);
+                setActivePreview(null);
+              }}
+              aria-label="Navigate to Blog"
+              aria-current={activeTab === 'blog' ? 'page' : undefined}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
+                activeTab === 'blog' 
+                  ? 'bg-primary/10 border border-primary/30 text-primary font-bold' 
+                  : 'text-slate-400 hover:text-slate-100 border border-transparent'
+              }`}
+            >
+              BLOG
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('contact');
+                setActiveReadmeRepo(null);
+                setActivePreview(null);
+              }}
               aria-label="Navigate to Contact"
               aria-current={activeTab === 'contact' ? 'page' : undefined}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all duration-200 cursor-pointer ${
@@ -417,7 +670,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 pt-28 pb-16 min-h-[calc(100vh-80px)]">
+      <main className="flex justify-center relative z-10 pt-28 pb-16 min-h-[calc(100vh-80px)]">
         <AnimatePresence mode="wait">
           
           {/* TAB 1: OVERVIEW / LANDING PAGE */}
@@ -428,8 +681,21 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3 }}
-              className="container px-4 md:px-8 max-w-6xl space-y-24"
+              className="container px-4 md:px-8 max-w-6xl space-y-16"
             >
+              {/* Brand Banner SVG Header */}
+              <div className="w-full flex justify-center pt-4">
+                <div className="w-full max-w-5xl rounded-2xl overflow-hidden border border-white/5 bg-slate-950/20 p-4 flex justify-center shadow-lg hover:border-primary/20 transition-all duration-300">
+                  <img 
+                    src="https://raw.githubusercontent.com/Pro-Bandey/Pro-Bandey/main/assets/Pro-Bandey_Brand.svg" 
+                    alt="Pro Bandey brand" 
+                    className="max-w-full h-auto object-contain rounded-xl select-none"
+                    style={{ height: '180px', aspectRatio: '5.12/1' }}
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              </div>
+
               {/* Hero Split Frame */}
               <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center pt-6">
                 <div className="lg:col-span-7 space-y-6">
@@ -455,7 +721,11 @@ export default function App() {
                   {/* Actions buttons */}
                   <div className="flex flex-wrap gap-3 pt-2">
                     <button
-                      onClick={() => setActiveTab('projects')}
+                      onClick={() => {
+                        setActiveTab('projects');
+                        setActiveReadmeRepo(null);
+                        setActivePreview(null);
+                      }}
                       className="bg-primary text-slate-950 hover:bg-primary/90 font-mono font-bold text-xs py-3.5 px-6 rounded-xl flex items-center gap-2 transition-all duration-200 shadow-lg shadow-primary/20 active:scale-95 cursor-pointer"
                     >
                       <span>EXPLORE REGISTRY</span>
@@ -472,7 +742,11 @@ export default function App() {
 
                 {/* Right Area: Shell Emulator Card */}
                 <div className="lg:col-span-5 w-full">
-                  <Terminal onNavigateToProjects={() => setActiveTab('projects')} />
+                  <Terminal onNavigateToProjects={() => {
+                    setActiveTab('projects');
+                    setActiveReadmeRepo(null);
+                    setActivePreview(null);
+                  }} />
                 </div>
               </section>
 
@@ -484,7 +758,51 @@ export default function App() {
                     DATA_METRICS: ACTIVITY & USAGE
                   </h2>
                 </div>
-                <ActivityChart repos={repos} />
+                
+                <div className="flex flex-col gap-7">
+                  {/* Left: Language Distribution Chart */}
+                  <div className="w-full">
+                    <ActivityChart repos={repos} />
+                  </div>
+                  
+                  {/* Right: Commit History Banner */}
+                  <div className="flex flex-col bg-bg-card rounded-xl border border-border p-4 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/50" />
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/50" />
+                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary/50" />
+                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary/50" />
+                    
+                    <h3 className="font-mono text-xs text-text-muted uppercase tracking-wider mb-4">
+                      <span className="text-secondary mr-2">■</span>
+                      CONTRIBUTION_METRIC_MAP
+                    </h3>
+                    
+                    <div className="flex-1 flex items-center justify-center min-h-[180px] bg-slate-950/40 rounded-lg p-4 border border-white/5">
+                      <picture className="w-full flex justify-center">
+                        <source media="(prefers-color-scheme: dark)" srcSet="https://commit-history.com/embed/Pro-Bandey?theme=dark" />
+                        <source media="(prefers-color-scheme: light)" srcSet="https://commit-history.com/embed/Pro-Bandey?theme=light" />
+                        <img 
+                          alt="Pro-Bandey's commit history" 
+                          src="https://commit-history.com/embed/Pro-Bandey?theme=dark" 
+                          className="max-w-full h-auto rounded border border-white/5 shadow-inner mx-auto"
+                          referrerPolicy="no-referrer"
+                        />
+                      </picture>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Dynamic Tech Stack Section */}
+              <section className="pt-4">
+                <TechStack 
+                  repos={repos} 
+                  onNavigateToProject={(repoName) => {
+                    setActiveTab('projects');
+                    setActiveReadmeRepo(repoName);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }} 
+                />
               </section>
 
               {/* Core Capabilities Grid Section */}
@@ -570,7 +888,7 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="space-y-5 text-center py-6"
                   >
-                    <div className="w-12 h-12 rounded-full bg-green-500/10 border border-green-500/25 flex items-center justify-center mx-auto text-green-400">
+                    <div className="w-12 h-12 rounded-full bg-[#00dd00]/10 border border-[#00dd00]/25 flex items-center justify-center mx-auto text-[#00dd00]">
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
@@ -657,6 +975,29 @@ export default function App() {
             </motion.div>
           )}
 
+          {/* TAB 4: BLOG SECTION */}
+          {activeTab === 'blog' && (
+            <BlogTab 
+              repos={repos}
+              onOpenReadme={(name) => {
+                setActiveReadmeRepo(name);
+              }}
+              onOpenPreview={(name, url) => {
+                setActivePreview({ repo: name, url });
+              }}
+              handleLanguageHover={handleLanguageHover}
+              handleLanguageLeave={handleLanguageLeave}
+              // Blog sync states
+              searchQuery={blogSearchQuery}
+              setSearchQuery={setBlogSearchQuery}
+              selectedCategory={blogSelectedCategory}
+              setSelectedCategory={setBlogSelectedCategory}
+              sortBy={blogSortBy}
+              setSortBy={setBlogSortBy}
+              setActiveBlogPostTitle={setActiveBlogPostTitle}
+            />
+          )}
+
           {/* TAB 2: REPOSITORY REGISTRY */}
           {activeTab === 'projects' && (
             <motion.div
@@ -735,77 +1076,116 @@ export default function App() {
               )}
 
               {/* Dynamic Filter Controls Panel */}
-              <div className="glass-panel p-4 border border-white/10 bg-white/5 backdrop-blur-md flex flex-col gap-4">
-                
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                  {/* Search query box */}
-                  <div className="relative w-full md:w-[45%] max-w-md">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Filter registry by keyword..."
-                      className="w-full bg-black/30 border border-white/5 hover:border-white/10 focus:border-primary/40 focus:ring-0 rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono text-slate-200 outline-none placeholder-slate-600 transition-colors"
-                    />
+              <div className="glass-panel border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden transition-all duration-300">
+                {/* Header that toggles dropdown */}
+                <button
+                  onClick={() => setFiltersExpanded(prev => !prev)}
+                  className="w-full flex items-center justify-between p-4 font-mono text-xs text-slate-300 hover:text-primary transition-colors cursor-pointer focus:outline-none"
+                >
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-primary" />
+                    <span className="uppercase font-bold tracking-wider">FILTER & SEARCH CONFIG_</span>
+                    {(searchQuery || selectedLanguage !== 'All' || sortBy !== 'updated') && (
+                      <span className="bg-primary/20 text-primary border border-primary/30 rounded-full px-2.5 py-0.5 text-[9px] font-bold">
+                        ACTIVE
+                      </span>
+                    )}
                   </div>
-
-                  {/* Sort Control Row */}
-                  <div className="flex w-full md:w-auto items-center justify-end gap-1.5 overflow-x-auto py-1 scrollbar-none select-none shrink-0">
-                    <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider shrink-0 pr-1">Sort By:</span>
-                    <button
-                      onClick={() => setSortBy('updated')}
-                      className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
-                        sortBy === 'updated'
-                          ? 'bg-primary/10 border-primary/40 text-primary font-bold'
-                          : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
-                      }`}
-                      title="Sort by latest release date"
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-500">{filtersExpanded ? "COLLAPSE" : "EXPAND"}</span>
+                    <motion.div
+                      animate={{ rotate: filtersExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      Last Updated
-                    </button>
-                    <button
-                      onClick={() => setSortBy('stars')}
-                      className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
-                        sortBy === 'stars'
-                          ? 'bg-primary/10 border-primary/40 text-primary font-bold'
-                          : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
-                      }`}
-                      title="Sort by star count"
-                    >
-                      Star Count
-                    </button>
-                    <button
-                      onClick={() => setSortBy('name')}
-                      className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
-                        sortBy === 'name'
-                          ? 'bg-primary/10 border-primary/40 text-primary font-bold'
-                          : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
-                      }`}
-                      title="Sort by project name alphabetically"
-                    >
-                      Name
-                    </button>
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    </motion.div>
                   </div>
-                </div>
+                </button>
 
-                {/* Filter Selector Row */}
-                <div className="flex w-full items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-primary/10 select-none border-t border-white/5 pt-3">
-                  <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider shrink-0 pr-1">Languages:</span>
-                  {availableLanguages.map(lang => (
-                    <button
-                      key={lang}
-                      onClick={() => setSelectedLanguage(lang)}
-                      className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
-                        selectedLanguage === lang
-                          ? 'bg-primary/10 border-primary/40 text-primary font-bold'
-                          : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
-                      }`}
+                {/* Collapsible Content */}
+                <AnimatePresence initial={false}>
+                  {filtersExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
                     >
-                      {lang}
-                    </button>
-                  ))}
-                </div>
+                      <div className="p-4 pt-0 border-t border-white/5 flex flex-col gap-4">
+                        
+                        <div className="flex flex-col md:flex-row gap-4 items-center justify-between pt-4">
+                          {/* Search query box */}
+                          <div className="relative w-full md:w-[45%] max-w-md">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input
+                              type="text"
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              placeholder="Filter registry by keyword..."
+                              className="w-full bg-black/30 border border-white/5 hover:border-white/10 focus:border-primary/40 focus:ring-0 rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono text-slate-200 outline-none placeholder-slate-600 transition-colors"
+                            />
+                          </div>
+
+                          {/* Sort Control Row */}
+                          <div className="flex w-full md:w-auto items-center justify-end gap-1.5 overflow-x-auto py-1 scrollbar-none select-none shrink-0">
+                            <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider shrink-0 pr-1">Sort By:</span>
+                            <button
+                              onClick={() => setSortBy('updated')}
+                              className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
+                                sortBy === 'updated'
+                                  ? 'bg-primary/10 border-primary/40 text-primary font-bold'
+                                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                              }`}
+                              title="Sort by latest release date"
+                            >
+                              Last Updated
+                            </button>
+                            <button
+                              onClick={() => setSortBy('stars')}
+                              className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
+                                sortBy === 'stars'
+                                  ? 'bg-primary/10 border-primary/40 text-primary font-bold'
+                                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                              }`}
+                              title="Sort by star count"
+                            >
+                              Star Count
+                            </button>
+                            <button
+                              onClick={() => setSortBy('name')}
+                              className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
+                                sortBy === 'name'
+                                  ? 'bg-primary/10 border-primary/40 text-primary font-bold'
+                                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                              }`}
+                              title="Sort by project name alphabetically"
+                            >
+                              Name
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Filter Selector Row */}
+                        <div className="flex w-full items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-primary/10 select-none border-t border-white/5 pt-3">
+                          <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider shrink-0 pr-1">Languages:</span>
+                          {availableLanguages.map(lang => (
+                            <button
+                              key={lang}
+                              onClick={() => setSelectedLanguage(lang)}
+                              className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] uppercase transition-all duration-200 whitespace-nowrap cursor-pointer ${
+                                selectedLanguage === lang
+                                  ? 'bg-primary/10 border-primary/40 text-primary font-bold'
+                                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                              }`}
+                            >
+                              {lang}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Main Cards Catalog */}
@@ -915,6 +1295,8 @@ export default function App() {
         repo={repos.find(r => r.Repo === activeReadmeRepo) || null}
         isOpen={!!activeReadmeRepo}
         onClose={() => setActiveReadmeRepo(null)}
+        allRepos={repos}
+        onOpenRepo={setActiveReadmeRepo}
       />
 
       {/* D. Preview Modal (Preview Drawer) */}
@@ -953,6 +1335,23 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Floating Back to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 15 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 z-[9999] p-3 rounded-full bg-primary hover:bg-[#ffb033] text-slate-950 shadow-lg shadow-primary/20 border border-primary-hover active:scale-95 transition-all duration-200 cursor-pointer flex items-center justify-center"
+            title="Back to Top"
+            aria-label="Back to Top"
+          >
+            <ArrowUp className="w-5 h-5 stroke-[2.5]" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
     </div>
   );

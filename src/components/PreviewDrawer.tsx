@@ -38,7 +38,7 @@ export default function PreviewDrawer({ repoName, previewUrl, isOpen, onClose }:
           transition={{ duration: 0.3 }}
           className={
             isFullscreen
-              ? "fixed inset-0 md:inset-4 z-[2100] bg-bg-main overflow-hidden flex flex-col space-y-6 p-4 md:p-6 rounded-none md:rounded-2xl border-none md:border md:border-border shadow-2xl"
+              ? "fixed top-20 md:top-24 inset-x-0 bottom-0 md:inset-x-4 md:bottom-4 z-[2100] bg-bg-main overflow-hidden flex flex-col space-y-6 p-4 md:p-6 rounded-t-2xl md:rounded-2xl border border-border shadow-2xl"
               : "fixed inset-x-0 bottom-0 top-20 md:top-24 md:inset-x-8 lg:inset-x-24 z-[2100] bg-bg-main overflow-hidden flex flex-col space-y-6 p-4 md:p-8 rounded-t-2xl md:rounded-2xl border border-border shadow-[0_-20px_60px_rgba(0,0,0,0.5)]"
           }
         >

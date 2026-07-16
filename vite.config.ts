@@ -1,8 +1,8 @@
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
-import { defineConfig } from "vite";
-import { VitePWA } from "vite-plugin-pwa";
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
@@ -10,138 +10,47 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: "autoUpdate",
-        includeAssets: [
-          "favicon.ico",
-          "/public/src/16.png",
-          "/public/src/32.png",
-          "/public/src/48.png",
-          "/public/src/64.png",
-          "/public/src/144.png",
-          "/public/src/144-maskable.png",
-          "/public/src/192.png",
-          "/public/src/192-maskable.png",
-          "/public/src/512.png",
-          "/public/src/512-maskable.png",
-        ],
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
-          name: "Pro Bandey",
-          short_name: "PB",
-          description: "A professional full-stack portfolio, developer workspace, and public repository registry by Pro-bandey.",
-          start_url: "/",
-          id: "/",
-          scope: "/",
-          display: "standalone",
-          background_color: "#070709",
-          theme_color: "#ff9900",
-          orientation: "portrait-primary",
-          lang: "en",
-
-          categories: ["technology", "Software", "development"],
-
-          prefer_related_applications: false,
-
+          name: 'Pro Bandey System',
+          short_name: 'ProBandey',
+          description: 'Engineering Elegant Logic - A Full-Stack Developer Portfolio and Repository Registry',
+          theme_color: '#020617',
+          background_color: '#020617',
+          display: 'standalone',
           icons: [
             {
-              src: "favicon.ico",
-              sizes: "any",
-              type: "image/x-icon",
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
             },
             {
-              src: "src/16.png",
-              sizes: "16x16",
-              type: "image/png",
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
             },
             {
-              src: "src/32.png",
-              sizes: "32x32",
-              type: "image/png",
-            },
-            {
-              src: "src/48.png",
-              sizes: "48x48",
-              type: "image/png",
-            },
-            {
-              src: "src/64.png",
-              sizes: "64x64",
-              type: "image/png",
-            },
-            {
-              src: "src/144.png",
-              sizes: "144x144",
-              type: "image/png",
-              purpose: "any",
-            },
-            {
-              src: "src/144-maskable.png",
-              sizes: "144x144",
-              type: "image/png",
-              purpose: "maskable",
-            },
-            {
-              src: "src/192.png",
-              sizes: "192x192",
-              type: "image/png",
-              purpose: "any",
-            },
-            {
-              src: "src/192-maskable.png",
-              sizes: "192x192",
-              type: "image/png",
-              purpose: "maskable",
-            },
-            {
-              src: "src/512.png",
-              sizes: "512x512",
-              type: "image/png",
-              purpose: "any",
-            },
-            {
-              src: "src/512-maskable.png",
-              sizes: "512x512",
-              type: "image/png",
-              purpose: "maskable",
-            },
-          ],
-
-          screenshots: [
-            {
-              src: "src/social-.png",
-              form_factor: "wide",
-              sizes: "2560x1440",
-              type: "image/png",
-              label: "ScreenShot Of Site",
-            },
-            {
-              src: "src/social-.png",
-              sizes: "2560x1440",
-              type: "image/png",
-              label: "ScreenShot Of Site",
-            },
-          ],
-        },
-      }),
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
+            }
+          ]
+        }
+      })
     ],
-    build: {
-    minify: "terser"  as const,
-    terserOptions: {
-      compress: true,
-      mangle: true,
-      format: {
-        comments: false,
-      },
-    },
-  },
-
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "."),
+        '@': path.resolve(__dirname, '.'),
       },
     },
     server: {
-      hmr: process.env.DISABLE_HMR !== "true",
-      watch: process.env.DISABLE_HMR === "true" ? null : {},
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      hmr: process.env.DISABLE_HMR !== 'true',
+      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
+      watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };
 });

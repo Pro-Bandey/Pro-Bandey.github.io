@@ -57,10 +57,44 @@ self.addEventListener("activate", (event) => {
 
 // ____________FETCH
 
+function isPortfolioAsset(url) {
+    const pathname = url.pathname;
+    if (pathname === '/' || pathname === '') return true;
+    
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length === 0) return true;
+    
+    const firstSegment = segments[0];
+    const portfolioSegments = [
+        'assets', 
+        'src', 
+        'index.html', 
+        'favicon.ico', 
+        'manifest.webmanifest', 
+        'sw.js', 
+        'offline.html', 
+        '404.html', 
+        'db.json', 
+        'tags.json', 
+        'registerSW.js'
+    ];
+    
+    if (portfolioSegments.includes(firstSegment)) return true;
+    if (firstSegment.startsWith('vite') || firstSegment === '@vite' || firstSegment === '@fs' || firstSegment === '@id' || firstSegment === 'node_modules') {
+        return true;
+    }
+    
+    return false;
+}
+
 self.addEventListener("fetch", (event) => {
     const { request } = event;
     if (request.method !== "GET") return;
     const url = new URL(request.url);
+    
+    // Only handle portfolio-related assets; do not interfere with subfolder repositories
+    if (!isPortfolioAsset(url)) return;
+
     // CDN CACHE  (Comment Out If Unused)
     if (CDN_DOMAINS.includes(url.hostname)) { event.respondWith(cacheCDN(request)); return; }
 

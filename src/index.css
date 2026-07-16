@@ -1,50 +1,208 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@300;400;500;700;800&display=swap');
 @import "tailwindcss";
 
+/* ==========================================================================
+   Dark Theme
+   ========================================================================== */
+
 :root {
-  --color-bg-main: #020617;
-  --color-bg-card: rgba(15, 23, 42, 0.8);
-  --color-text-main: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-border-hover: rgba(255, 255, 255, 0.2);
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --color-bg-main: #11100d;
+  --color-bg-surface: #1a1814;
+  --color-bg-card: rgba(34, 30, 24, 0.92);
+  --color-bg-hover: #29241d;
+
+  /* Text */
+  --color-text-main: #fff6e8;
+  --color-text-muted: #b9ac98;
+  --color-text-disabled: #776d60;
+
+  /* Borders */
+  --color-border: rgba(255, 153, 0, 0.12);
+  --color-border-hover: rgba(255, 153, 0, 0.35);
+
+  /* Primary (Orange) */
   --color-primary: #ff9900;
-  --color-primary-alpha: rgba(255, 153, 0, 0.1);
-  --color-primary-alpha-strong: rgba(255, 153, 0, 0.3);
+  --color-primary-hover: #ffad33;
+  --color-primary-active: #e68900;
+  --color-primary-light: #ffd08a;
+
+  --color-primary-alpha: rgba(255, 153, 0, 0.10);
+  --color-primary-alpha-strong: rgba(255, 153, 0, 0.25);
+
+  /* Secondary (Green) */
   --color-secondary: #00dd00;
-  --color-secondary-alpha: rgba(0, 221, 0, 0.1);
+  --color-secondary-hover: #2cff2c;
+  --color-secondary-active: #00bb00;
+  --color-secondary-light: #8dff8d;
+
+  --color-secondary-alpha: rgba(0, 221, 0, 0.10);
+  --color-secondary-alpha-strong: rgba(0, 221, 0, 0.25);
+
+  /* Status */
+  --color-success: var(--color-secondary);
+  --color-warning: var(--color-primary);
+  --color-danger: #ff6d3a;
+  --color-danger-alpha: rgba(255, 109, 58, 0.12);
+
+  /* Focus */
+  --color-focus: rgba(255, 153, 0, 0.45);
+
+  /* Grid */
   --grid-color: rgba(255, 153, 0, 0.05);
+
+  /* Neutral Palette (No Blue Tint) */
+  --color-neutral-50: #fffdf8;
+  --color-neutral-100: #f8f2e8;
+  --color-neutral-200: #e8dfcf;
+  --color-neutral-300: #d3c5af;
+  --color-neutral-400: #b9ac98;
+  --color-neutral-500: #9d907d;
+  --color-neutral-600: #776d60;
+  --color-neutral-700: #5c554c;
+  --color-neutral-800: #3b362f;
+  --color-neutral-900: #211e1a;
+  --color-neutral-950: #11100d;
+
+  /* Generic */
+  --color-white: #ffffff;
+  --color-black: #000000;
 }
 
-[data-theme="light-cyber"] {
-  --color-bg-main: #f8fafc;
-  --color-bg-card: rgba(255, 255, 255, 0.9);
-  --color-text-main: #0f172a;
-  --color-text-muted: #64748b;
-  --color-border: rgba(0, 0, 0, 0.15);
-  --color-border-hover: rgba(0, 0, 0, 0.3);
-  --color-primary: #00bcd4;
-  --color-primary-alpha: rgba(0, 188, 212, 0.1);
-  --color-primary-alpha-strong: rgba(0, 188, 212, 0.3);
-  --color-secondary: #e91e63;
-  --color-secondary-alpha: rgba(233, 30, 99, 0.1);
-  --grid-color: rgba(0, 188, 212, 0.1);
 
-  /* Override standard Tailwind colors used in the app */
-  --color-slate-50: #020617;
-  --color-slate-100: #0f172a;
-  --color-slate-200: #1e293b;
-  --color-slate-300: #334155;
-  --color-slate-400: #475569;
-  --color-slate-500: #64748b;
-  --color-slate-600: #94a3b8;
-  --color-slate-700: #cbd5e1;
-  --color-slate-800: #f1f5f9;
-  --color-slate-900: #f8fafc;
-  --color-slate-950: #ffffff;
+/* ==========================================================================
+   Light Theme
+   ========================================================================== */
 
-  --color-white: #000000;
-  --color-black: #ffffff;
+[data-theme="light"], [data-theme="light-cyber"] {
+  color-scheme: light;
+
+  /* Backgrounds */
+  --color-bg-main: #faf8f4;
+  --color-bg-surface: #f4efe4;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #ebe4d5;
+
+  /* Text */
+  --color-text-main: #1c150c;
+  --color-text-muted: #544838;
+  --color-text-disabled: #857867;
+
+  /* Borders */
+  --color-border: rgba(220,110,0,.22);
+  --color-border-hover: rgba(220,110,0,.45);
+
+  /* Primary */
+  --color-primary: #e67300;
+  --color-primary-hover: #ff850a;
+  --color-primary-active: #cc6600;
+  --color-primary-light: #fff0d2;
+
+  --color-primary-alpha: rgba(230,115,0,.08);
+  --color-primary-alpha-strong: rgba(230,115,0,.20);
+
+  /* Secondary */
+  --color-secondary: #009900;
+  --color-secondary-hover: #00bb00;
+  --color-secondary-active: #008000;
+  --color-secondary-light: #dcffdc;
+
+  --color-secondary-alpha: rgba(0,187,0,.08);
+  --color-secondary-alpha-strong: rgba(0,187,0,.20);
+
+  /* Status */
+  --color-success: var(--color-secondary);
+  --color-warning: var(--color-primary);
+  --color-danger: #e55c29;
+  --color-danger-alpha: rgba(229,92,41,.10);
+
+  /* Focus */
+  --color-focus: rgba(230,115,0,.35);
+
+  /* Grid */
+  --grid-color: rgba(230,115,0,.08);
+
+  /* Neutral Palette (Warm, darkened significantly for readability) */
+  --color-neutral-50: #ffffff;
+  --color-neutral-100: #fbf9f4;
+  --color-neutral-200: #f4efe4;
+  --color-neutral-300: #e2d9c7;
+  --color-neutral-400: #8c7f6d; /* Darkened from #d6c8b4 for contrast */
+  --color-neutral-500: #6e6251; /* Darkened from #b9ac98 for contrast */
+  --color-neutral-600: #594f41;
+  --color-neutral-700: #453d32;
+  --color-neutral-800: #332d25;
+  --color-neutral-900: #221e19;
+  --color-neutral-950: #12100d;
+
+  --color-white: #ffffff;
+  --color-black: #000000;
+}
+
+/* Map slate variables on dark vs light theme */
+:root {
+  --color-slate-50: var(--color-neutral-50);
+  --color-slate-100: var(--color-neutral-100);
+  --color-slate-200: var(--color-neutral-200);
+  --color-slate-300: var(--color-neutral-300);
+  --color-slate-400: var(--color-neutral-400);
+  --color-slate-500: var(--color-neutral-500);
+  --color-slate-600: var(--color-neutral-600);
+  --color-slate-700: var(--color-neutral-700);
+  --color-slate-800: var(--color-neutral-800);
+  --color-slate-900: var(--color-neutral-900);
+  --color-slate-950: var(--color-neutral-950);
+}
+
+[data-theme="light"], [data-theme="light-cyber"] {
+  /* Inverted semantic slate mapping for light-theme high contrast */
+  --color-slate-50: var(--color-neutral-950);
+  --color-slate-100: var(--color-neutral-900);
+  --color-slate-200: var(--color-neutral-800);
+  --color-slate-300: var(--color-neutral-700);
+  --color-slate-400: var(--color-neutral-600);
+  --color-slate-500: var(--color-neutral-500);
+  --color-slate-600: var(--color-neutral-400);
+  --color-slate-700: var(--color-neutral-300);
+  --color-slate-800: var(--color-neutral-200);
+  --color-slate-900: var(--color-neutral-100);
+  --color-slate-950: var(--color-neutral-50);
+}
+
+/* Seamless support overrides for standard dark classes in light theme */
+[data-theme="light"] .border-white\/5,
+[data-theme="light-cyber"] .border-white\/5 {
+  border-color: rgba(139, 92, 26, 0.08) !important;
+}
+[data-theme="light"] .border-white\/10,
+[data-theme="light-cyber"] .border-white\/10 {
+  border-color: rgba(139, 92, 26, 0.14) !important;
+}
+[data-theme="light"] .border-white\/20,
+[data-theme="light-cyber"] .border-white\/20 {
+  border-color: rgba(139, 92, 26, 0.24) !important;
+}
+[data-theme="light"] .bg-white\/5,
+[data-theme="light-cyber"] .bg-white\/5 {
+  background-color: rgba(139, 92, 26, 0.04) !important;
+}
+[data-theme="light"] .bg-white\/10,
+[data-theme="light-cyber"] .bg-white\/10 {
+  background-color: rgba(139, 92, 26, 0.08) !important;
+}
+[data-theme="light"] .bg-black\/30,
+[data-theme="light-cyber"] .bg-black\/30 {
+  background-color: rgba(139, 92, 26, 0.05) !important;
+}
+[data-theme="light"] .bg-black\/40,
+[data-theme="light-cyber"] .bg-black\/40 {
+  background-color: rgba(139, 92, 26, 0.07) !important;
+}
+[data-theme="light"] .bg-black\/75,
+[data-theme="light-cyber"] .bg-black\/75 {
+  background-color: rgba(139, 92, 26, 0.12) !important;
 }
 
 @theme {
@@ -62,6 +220,19 @@
   --color-secondary: var(--color-secondary);
   --color-secondary-alpha: var(--color-secondary-alpha);
   --color-grid: var(--grid-color);
+
+  /* Map slate to our warm neutral palette to completely eliminate blue tints across the app */
+  --color-slate-50: var(--color-slate-50);
+  --color-slate-100: var(--color-slate-100);
+  --color-slate-200: var(--color-slate-200);
+  --color-slate-300: var(--color-slate-300);
+  --color-slate-400: var(--color-slate-400);
+  --color-slate-500: var(--color-slate-500);
+  --color-slate-600: var(--color-slate-600);
+  --color-slate-700: var(--color-slate-700);
+  --color-slate-800: var(--color-slate-800);
+  --color-slate-900: var(--color-slate-900);
+  --color-slate-950: var(--color-slate-950);
 }
 
 /* Glassmorphic Panel Base Styles */
