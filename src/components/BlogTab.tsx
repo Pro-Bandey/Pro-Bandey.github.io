@@ -1073,7 +1073,7 @@ export default function BlogTab({
                         RUST_LANG
                       </button>
                       <button
-                        onClick={() => setRssUrl('https://pro-bandey.github.io/feed/')}
+                        onClick={() => setRssUrl('https://pro-bandey.github.io/TechFeeds/feeds/index.xml')}
                         className={`px-2.5 py-1 rounded border font-mono text-[9px] uppercase transition-all duration-150 cursor-pointer ${
                           rssUrl === 'https://pro-bandey.github.io/feed.xml'
                             ? 'bg-primary/20 border-primary/40 text-primary font-bold'
